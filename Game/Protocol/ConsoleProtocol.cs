@@ -13,7 +13,7 @@ namespace Game.Protocol
             Formatting = Formatting.None,
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            Converters = {new StringEnumConverter(new CamelCaseNamingStrategy())}
+            Converters = {new StringEnumConverter(true)}
         };
 
         public static Config ReadConfig()
