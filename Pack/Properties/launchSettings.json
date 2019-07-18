@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Pack": {
+      "commandName": "Project",
+      "commandLineArgs": "../../../../Game"
+    },
+    "Pack-rider": {
+      "commandName": "Project",
+      "commandLineArgs": "../Game"
+    }
+  }
+}
