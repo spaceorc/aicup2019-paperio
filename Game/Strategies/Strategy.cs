@@ -1,4 +1,5 @@
 ﻿using System;
+using Game.Helpers;
 using Game.Protocol;
 using Game.Types;
 
@@ -14,9 +15,9 @@ namespace Game.Strategies
             this.config = config;
         }
 
-        public TurnOutput OnTick(TurnInput turnInput, TimeManager timeManager)
+        public RequestOutput OnTick(RequestInput requestInput, TimeManager timeManager)
         {
-            return new TurnOutput{Command = (Direction)random.Next(4)};
+            return new RequestOutput{Command = (Direction)random.Next(4)};
         }
     }
 }

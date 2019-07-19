@@ -3,7 +3,7 @@ using Game.Types;
 
 namespace Game.Protocol
 {
-    public class TurnInput
+    public class RequestInput
     {
         public Dictionary<string, PlayerData> players;
         public BonusData[] bonuses;

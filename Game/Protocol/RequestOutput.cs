@@ -2,7 +2,7 @@
 
 namespace Game.Protocol
 {
-	public class TurnOutput
+	public class RequestOutput
     {
         public string Debug { get; set; }
         public string Error { get; set; }

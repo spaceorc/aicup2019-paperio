@@ -16,34 +16,38 @@ namespace Game.Protocol
             Converters = {new StringEnumConverter(true)}
         };
 
-        public static Config ReadConfig()
-        {
-            var line = Console.ReadLine();
-            var json = JToken.Parse(line);
-            if (json["type"].ToString() != "start_game")
-                return null;
-            return json["params"].ToObject<Config>();
-        }
-
-        public static TurnInput ReadTurnInput()
+        public static ReadResult Read()
         {
             var line = Console.ReadLine();
             if (line == null)
                 return null;
+
             var json = JToken.Parse(line);
-            if (json["type"].ToString() != "tick")
-                return null;
-            return json["params"].ToObject<TurnInput>();
+            var type = json["type"].ToString();
+
+            if (type == "start_game")
+            {
+                var config = json["params"].ToObject<Config>();
+                config.Prepare();
+                return new ReadResult {Type = type, Config = config};
+            }
+
+            if (type == "tick")
+            {
+                var input = json["params"].ToObject<RequestInput>();
+                return new ReadResult {Type = type, Input = input};
+            }
+
+            return new ReadResult {Type = type};
         }
 
-        public static void WriteTurnInput(TurnOutput output)
+        public static void Write(RequestOutput output)
         {
             if (output.Debug != null && output.Debug.Length > 200)
                 output.Debug = output.Debug.Substring(0, 200);
             if (output.Error != null && output.Error.Length > 200)
                 output.Error = output.Error.Substring(0, 200);
-            var line = JsonConvert.SerializeObject(output, jsonSerializerSettings);
-            Console.WriteLine(line);
+            Console.WriteLine(JsonConvert.SerializeObject(output, jsonSerializerSettings));
         }
     }
 }

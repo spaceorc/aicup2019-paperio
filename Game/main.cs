@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Linq;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
+using Game.Types;
 
 namespace Game
 {
@@ -13,29 +15,47 @@ namespace Game
                 (sender, eventArgs) => Logger.Error((Exception)eventArgs.ExceptionObject);
 
             Logger.minLevel = Logger.Level.Debug;
-            Logger.Info("Waiting for config...");
 
-            var config = ConsoleProtocol.ReadConfig();
-            Logger.Info($"Config: {config.ToJson()}");
+            TimeManager timeManager = null;
+            Strategy strategy = null;
 
-            var timeManager = new TimeManager();
-            var strategy = new Strategy(config); //StrategiesRegistry.Create(Settings.DefaultStrategy, config);
             while (true)
             {
-                Logger.Info("Waiting for data...");
-                var data = ConsoleProtocol.ReadTurnInput();
-                if (data == null)
+                Logger.Info("Waiting data");
+                var readResult = ConsoleProtocol.Read();
+                if (readResult == null)
                 {
-                    Logger.Info("Game is over...");
+                    Logger.Info("Terminating");
                     break;
                 }
+
+                if (readResult.Config != null)
+                {
+                    Logger.Info($"Config: {readResult.Config.ToJson()}");
+                    timeManager = new TimeManager(readResult.Config);
+                    strategy = new Strategy(readResult.Config);
+                    continue;
+                }
+
+                if (readResult.Input != null)
+                {
+                    if (timeManager == null)
+                        throw new InvalidOperationException();
+
+                    timeManager.RequestStarted(
+                        readResult.Input.tick_num,
+                        readResult.Input.players["i"].bonuses.FirstOrDefault(b => b.type == BonusType.N)?.ticks ?? 0,
+                        readResult.Input.players["i"].bonuses.FirstOrDefault(b => b.type == BonusType.S)?.ticks ?? 0);
+
+                    Logger.Info($"Input: {readResult.Input.ToJson()}");
+                    var command = strategy.OnTick(readResult.Input, timeManager);
+                    timeManager.RequestFinished();
+
+                    ConsoleProtocol.Write(command);
+                    continue;
+                }
                 
-                timeManager.TickStarted();
-                Logger.Info($"Data: {data.ToJson()}");
-                var command = strategy.OnTick(data, timeManager);
-                Logger.Info($"Command: {command.ToJson()}");
-                timeManager.TickFinished();
-                ConsoleProtocol.WriteTurnInput(command);
+                Logger.Debug($"Unexpected type: {readResult.Type}");
             }
         }
     }

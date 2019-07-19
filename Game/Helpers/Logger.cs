@@ -2,9 +2,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Game.Helpers;
 
-namespace Game
+namespace Game.Helpers
 {
 	public static class Logger
 	{

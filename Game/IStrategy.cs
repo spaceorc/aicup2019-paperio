@@ -1,9 +1,10 @@
-﻿using Game.Protocol;
+﻿using Game.Helpers;
+using Game.Protocol;
 
 namespace Game
 {
 	public interface IStrategy
 	{
-		TurnOutput OnTick(TurnInput turnInput, TimeManager timeManager);
+		RequestOutput OnTick(RequestInput requestInput, TimeManager timeManager);
 	}
 }
