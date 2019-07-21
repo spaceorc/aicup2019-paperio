@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Protocol;
@@ -27,27 +28,27 @@ namespace BrutalTester.Sim
             Territory = new Territory(pos);
         }
 
-        public V GetShift(int d) =>
-            Direction == Direction.Up ? new V(0, d)
-            : Direction == Direction.Down ? new V(0, -d)
-            : Direction == Direction.Right ? new V(d, 0)
-            : new V(-d, 0);
+        public void ChangeDirection(Direction command)
+        {
+            if (command == Direction.Up && Direction != Direction.Down)
+                Direction = Direction.Up;
+            if (command == Direction.Down && Direction != Direction.Up)
+                Direction = Direction.Down;
+            if (command == Direction.Left && Direction != Direction.Right)
+                Direction = Direction.Left;
+            if (command == Direction.Right && Direction != Direction.Left)
+                Direction = Direction.Right;
+        }
 
         public void Move()
         {
             Pos += GetShift(Speed);
         }
 
-        public void ChangeDirection(Direction direction)
+        public void UpdateLines()
         {
-            if (direction == Direction.Up && Direction != Direction.Down)
-                Direction = Direction.Up;
-            if (direction == Direction.Down && Direction != Direction.Up)
-                Direction = Direction.Down;
-            if (direction == Direction.Left && Direction != Direction.Right)
-                Direction = Direction.Left;
-            if (direction == Direction.Right && Direction != Direction.Left)
-                Direction = Direction.Right;
+            if (!Territory.Points.Contains(Pos) || Lines.Count > 0)
+                Lines.Add(Pos);
         }
 
         public void RemoveSawBonus()
@@ -62,10 +63,17 @@ namespace BrutalTester.Sim
             }
         }
 
-        public void UpdateLines()
+        public void TickAction()
         {
-            if (!Territory.Points.Contains(Pos) || Lines.Count > 0)
-                Lines.Add(Pos);
+            foreach (var bonus in Bonuses.ToList())
+            {
+                bonus.Tick++;
+                if (bonus.Tick >= bonus.ActiveTicks)
+                {
+                    bonus.Cancel(this);
+                    Bonuses.Remove(bonus);
+                }
+            }
         }
 
         public List<V> GetDirectionLine()
@@ -82,17 +90,11 @@ namespace BrutalTester.Sim
             return points;
         }
 
-        public void TickAction()
-        {
-            foreach (var bonus in Bonuses.ToList())
-            {
-                bonus.Tick++;
-                if (bonus.Tick >= bonus.ActiveTicks)
-                {
-                    bonus.Cancel(this);
-                    Bonuses.Remove(bonus);
-                }
-            }
-        }
+        private V GetShift(int d) =>
+            Direction == Direction.Up ? new V(0, d)
+            : Direction == Direction.Down ? new V(0, -d)
+            : Direction == Direction.Right ? new V(d, 0)
+            : Direction == Direction.Left ? new V(-d, 0)
+            : throw new InvalidOperationException($"Unknown direction: {Direction}");
     }
 }

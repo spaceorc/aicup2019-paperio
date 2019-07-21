@@ -15,15 +15,15 @@ namespace BrutalTester.Sim
             v => new Saw(v)
         };
 
-        public List<Player> Players { get; }
+        public List<Player> Players { get; } = new List<Player>();
+        public List<Player> Losers { get; } = new List<Player>();
         public List<Bonus> Bonuses { get; } = new List<Bonus>();
         public int Tick { get; set; }
 
         public Game(IClient[] clients)
         {
-            Players = new List<Player>();
             var coordinates = GetCoordinates(clients.Length);
-            for (int i = 0; i < clients.Length; i++)
+            for (var i = 0; i < clients.Length; i++)
                 Players.Add(new Player(i + 1, coordinates[i], clients[i]));
             Tick = 1;
         }
@@ -78,7 +78,12 @@ namespace BrutalTester.Sim
                     break;
             }
 
-            coords = coords.Select(v => new V(v.X / Env.WIDTH * Env.WIDTH - Env.WIDTH / 2, v.Y / Env.WIDTH * Env.WIDTH - Env.WIDTH / 2)).ToArray();
+            coords = coords
+                .Select(
+                    v => new V(
+                        v.X / Env.WIDTH * Env.WIDTH - Env.WIDTH / 2,
+                        v.Y / Env.WIDTH * Env.WIDTH - Env.WIDTH / 2))
+                .ToArray();
             return coords;
         }
 
@@ -96,7 +101,7 @@ namespace BrutalTester.Sim
             }
         }
 
-        public bool GameLoop()
+        private bool GameLoop()
         {
             foreach (var player in Players)
             {
@@ -110,11 +115,10 @@ namespace BrutalTester.Sim
             foreach (var player in Players)
                 player.Move();
 
-            var losers = new List<Player>();
             foreach (var player in Players)
             {
                 if (CheckLoss(player))
-                    losers.Add(player);
+                    Losers.Add(player);
             }
 
             foreach (var player in Players)
@@ -148,7 +152,7 @@ namespace BrutalTester.Sim
                                     {
                                         if (line.Any(point => p.Pos.IntersectsWith(point, Env.WIDTH)))
                                         {
-                                            losers.Add(p);
+                                            Losers.Add(p);
                                             player.Score += Env.SAW_KILL_SCORE;
                                         }
                                         else
@@ -174,7 +178,7 @@ namespace BrutalTester.Sim
                 }
             }
 
-            foreach (var loser in losers)
+            foreach (var loser in Losers)
                 Players.Remove(loser);
 
             GenerateBonus();
@@ -256,7 +260,7 @@ namespace BrutalTester.Sim
                     .Concat(Players.SelectMany(x => x.Lines)));
         }
 
-        public bool CheckLoss(Player player)
+        private bool CheckLoss(Player player)
         {
             var isLoss = false;
             if (player.Pos.X < Env.WIDTH / 2)
