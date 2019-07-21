@@ -19,14 +19,14 @@
             while (nitroSpeed < width)
             {
                 nitroSpeed++;
-                if (nitroSpeed % width == 0)
+                if (width % nitroSpeed == 0)
                     break;
             }
             slowSpeed = speed;
             while (slowSpeed > 1)
             {
                 slowSpeed--;
-                if (slowSpeed % width == 0)
+                if (width % slowSpeed == 0)
                     break;
             }
 

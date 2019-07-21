@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\Unit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pack", "Pack\Pack.csproj", "{174715F1-A493-49DA-A910-B70AE0FD8323}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrutalTester", "BrutalTester\BrutalTester.csproj", "{C82CC6E1-1E21-400C-8E34-774553516CAF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ArenaAgent|Any CPU = ArenaAgent|Any CPU
@@ -33,6 +35,12 @@ Global
 		{174715F1-A493-49DA-A910-B70AE0FD8323}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{174715F1-A493-49DA-A910-B70AE0FD8323}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{174715F1-A493-49DA-A910-B70AE0FD8323}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C82CC6E1-1E21-400C-8E34-774553516CAF}.ArenaAgent|Any CPU.ActiveCfg = Debug|Any CPU
+		{C82CC6E1-1E21-400C-8E34-774553516CAF}.ArenaAgent|Any CPU.Build.0 = Debug|Any CPU
+		{C82CC6E1-1E21-400C-8E34-774553516CAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C82CC6E1-1E21-400C-8E34-774553516CAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C82CC6E1-1E21-400C-8E34-774553516CAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C82CC6E1-1E21-400C-8E34-774553516CAF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
