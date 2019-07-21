@@ -13,24 +13,34 @@ namespace BrutalTester.Sim
             ActiveTicks = GenerateActiveTicks();
         }
 
-        private static int GenerateActiveTicks()
-        {
-            return Helpers.Rand(6) * 10;
-        }
-
         public V Pos { get; }
         public int Tick { get; set; }
-        public int ActiveTicks { get; set; }
+        public int ActiveTicks { get; protected set; }
         public int RemainingTicks => ActiveTicks - Tick;
-
-        public bool IsAte(Player player, HashSet<V> captured)
-        {
-            return Pos == player.Pos || captured.Contains(Pos);
-        }
 
         public abstract BonusType Type { get; }
         public abstract void Apply(Player player);
         public abstract void Cancel(Player player);
+
+        private static int GenerateActiveTicks()
+        {
+            return Helpers.RandInt(1, 5) * 10;
+        }
+
+        private static bool IsAvailablePoint(V v, List<Player> players, HashSet<V> busyPoints)
+        {
+            if (busyPoints.Contains(v))
+                return false;
+
+            foreach (var p in players)
+            {
+                if (p.Pos.X - 2 * Env.WIDTH <= v.X && v.X <= p.Pos.X + 2 * Env.WIDTH &&
+                    p.Pos.Y - 2 * Env.WIDTH <= v.Y && v.Y <= p.Pos.Y + 2 * Env.WIDTH)
+                    return false;
+            }
+
+            return true;
+        }
 
         public static V GenerateCoordinates(List<Player> players, HashSet<V> busyPoints)
         {
@@ -38,21 +48,11 @@ namespace BrutalTester.Sim
             while (!IsAvailablePoint(v, players, busyPoints))
                 v = Helpers.GetRandomCoordinates();
             return v;
-
         }
 
-        private static bool IsAvailablePoint(V v, List<Player> players, HashSet<V> busyPoints)
+        public bool IsAte(Player player, HashSet<V> captured)
         {
-            if (busyPoints.Contains(v))
-                return false;
-            
-            foreach (var p in players)
-            {
-                if (p.Pos.IntersectsWith(v, Env.WIDTH * 2))
-                    return false;
-            }
-
-            return true;
+            return Pos == player.Pos || captured.Contains(Pos);
         }
     }
 }

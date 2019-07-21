@@ -15,7 +15,7 @@ namespace BrutalTester.Sim
 
         public override void Apply(Player player)
         {
-            var b = player.Bonuses.OfType<Nitro>().SingleOrDefault();
+            var b = player.Bonuses.OfType<Slowdown>().SingleOrDefault();
             if (b != null)
                 b.ActiveTicks += ActiveTicks;
             else
