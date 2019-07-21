@@ -36,9 +36,7 @@ namespace BrutalTester.Sim
                     }
 
                     foreach (var @void in voids)
-                    {
                         captured.UnionWith(DoCapture(@void));
-                    }
                 }
             }
 
@@ -133,9 +131,10 @@ namespace BrutalTester.Sim
                     var endIndex = lines.IndexOf(point);
                     if (endIndex >= 0)
                     {
-                        if (endIndex - i >= 8)
+                        // + 1 добавлено тут https://github.com/MailRuChamps/miniaicups/pull/272
+                        if (endIndex - i + 1 >= 8)
                         {
-                            var path = lines.GetRange(i, endIndex - i);
+                            var path = lines.GetRange(i, endIndex - i + 1); // + 1 добавлено тут https://github.com/MailRuChamps/miniaicups/pull/272
                             captured.AddRange(DoCapture(path));
                         }
                     }
@@ -180,7 +179,7 @@ namespace BrutalTester.Sim
             return captured;
         }
 
-        private bool InPolygon(int x, int y, int[] xp, int[] yp)
+        private static bool InPolygon(int x, int y, int[] xp, int[] yp)
         {
             var c = false;
             for (var i = 0; i < xp.Length; i++)
@@ -231,7 +230,7 @@ namespace BrutalTester.Sim
             return voids;
         }
 
-        private V GetNearestBoundary(V point, List<V> boundary)
+        private static V GetNearestBoundary(V point, List<V> boundary)
         {
             foreach (var neighbor in point.GetSelfAndNeighboring(Env.WIDTH))
             {
@@ -242,7 +241,7 @@ namespace BrutalTester.Sim
             return null;
         }
 
-        private List<int> GetPath(int startIndex, int endIndex, List<V> boundary)
+        private static List<int> GetPath(int startIndex, int endIndex, List<V> boundary)
         {
             var graph = new Graph();
             for (var index = 0; index < boundary.Count; index++)

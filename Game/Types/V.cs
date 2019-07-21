@@ -33,6 +33,8 @@ namespace Game.Types
         public int X { get; }
         public int Y { get; }
 
+        public override string ToString() => $"{X},{Y}";
+
         public bool Equals(V other)
         {
             if (ReferenceEquals(null, other))
