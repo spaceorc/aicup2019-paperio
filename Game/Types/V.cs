@@ -109,6 +109,13 @@ namespace Game.Types
             return (X - width / 2) % width == 0 && (Y - width / 2) % width == 0;
         }
 
+        public V ToCellCoords(int width)
+        {
+            return V.Get(
+                (X - width / 2) / width,
+                (Y - width / 2) / width);
+        }
+
         public V[] GetDiagonals(int width)
         {
             return diagonals.Select(v => this + v * width).ToArray();
