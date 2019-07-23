@@ -23,14 +23,14 @@ namespace UnitTests
         public void Capture(string d1, string d2, string d3, string d4)
         {
             //Env.WIDTH = 1;
-            var territory = new Territory(new V(0, 0));
+            var territory = new Territory(V.Get(0, 0));
 
             var shifts = new Dictionary<string, V>
             {
-                {"right", new V(1, 0)},
-                {"left", new V(-1, 0)},
-                {"up", new V(0, 1)},
-                {"down", new V(0, -1)},
+                {"right", V.Get(1, 0)},
+                {"left", V.Get(-1, 0)},
+                {"up", V.Get(0, 1)},
+                {"down", V.Get(0, -1)},
             };
 
             var s1 = shifts[d1];
@@ -40,7 +40,7 @@ namespace UnitTests
 
             var p = new List<V>
             {
-                new V(10, 10)
+                V.Get(10, 10)
             };
             p.Add(p.Last() + s1);
             p.Add(p.Last() + s1);

@@ -38,23 +38,23 @@ namespace BrutalTester.Sim
             switch (clientCount)
             {
                 case 1:
-                    coords = new[] {new V(3 * dx, 3 * dy)};
+                    coords = new[] {V.Get(3 * dx, 3 * dy)};
                     break;
                 case 2:
                     coords = new[]
                     {
-                        new V(2 * dx, 3 * dy),
-                        new V(4 * dx, 3 * dy)
+                        V.Get(2 * dx, 3 * dy),
+                        V.Get(4 * dx, 3 * dy)
                     };
                     break;
                 case 3:
                 case 4:
                     coords = new[]
                     {
-                        new V(2 * dx, 2 * dy),
-                        new V(2 * dx, 4 * dy),
-                        new V(4 * dx, 2 * dy),
-                        new V(4 * dx, 4 * dy),
+                        V.Get(2 * dx, 2 * dy),
+                        V.Get(2 * dx, 4 * dy),
+                        V.Get(4 * dx, 2 * dy),
+                        V.Get(4 * dx, 4 * dy),
                     };
                     break;
                 default:
@@ -65,14 +65,14 @@ namespace BrutalTester.Sim
 
                     coords = new[]
                     {
-                        new V(x, x + a),
-                        new V(x, x + a + y + Env.WIDTH),
+                        V.Get(x, x + a),
+                        V.Get(x, x + a + y + Env.WIDTH),
 
-                        new V(Env.WINDOW_WIDTH / 2, Env.WINDOW_HEIGHT - x + Env.WIDTH),
-                        new V(Env.WINDOW_WIDTH / 2, x),
+                        V.Get(Env.WINDOW_WIDTH / 2, Env.WINDOW_HEIGHT - x + Env.WIDTH),
+                        V.Get(Env.WINDOW_WIDTH / 2, x),
 
-                        new V(Env.WINDOW_WIDTH - x + Env.WIDTH, x + a),
-                        new V(Env.WINDOW_WIDTH - x + Env.WIDTH, x + a + y + Env.WIDTH),
+                        V.Get(Env.WINDOW_WIDTH - x + Env.WIDTH, x + a),
+                        V.Get(Env.WINDOW_WIDTH - x + Env.WIDTH, x + a + y + Env.WIDTH),
                     };
 
                     break;
@@ -80,7 +80,7 @@ namespace BrutalTester.Sim
 
             coords = coords
                 .Select(
-                    v => new V(
+                    v => V.Get(
                         v.X / Env.WIDTH * Env.WIDTH - Env.WIDTH / 2,
                         v.Y / Env.WIDTH * Env.WIDTH - Env.WIDTH / 2))
                 .ToArray();

@@ -24,7 +24,7 @@ namespace BrutalTester.Sim
             Pos = pos;
             Client = client;
             Speed = Env.SPEED;
-            Direction = Direction.Left;
+            Direction = Direction.Initial;
             Territory = new Territory(pos);
         }
 
@@ -91,10 +91,10 @@ namespace BrutalTester.Sim
         }
 
         private V GetShift(int d) =>
-            Direction == Direction.Up ? new V(0, d)
-            : Direction == Direction.Down ? new V(0, -d)
-            : Direction == Direction.Right ? new V(d, 0)
-            : Direction == Direction.Left ? new V(-d, 0)
+            Direction == Direction.Up ? V.Get(0, d)
+            : Direction == Direction.Down ? V.Get(0, -d)
+            : Direction == Direction.Right ? V.Get(d, 0)
+            : Direction == Direction.Left ? V.Get(-d, 0)
             : throw new InvalidOperationException($"Unknown direction: {Direction}");
     }
 }

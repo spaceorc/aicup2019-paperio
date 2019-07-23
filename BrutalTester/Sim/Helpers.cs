@@ -29,7 +29,7 @@ namespace BrutalTester.Sim
         {
             var x = RandInt(1, Env.X_CELLS_COUNT) * Env.WIDTH - Env.WIDTH / 2;
             var y = RandInt(1, Env.Y_CELLS_COUNT) * Env.WIDTH - Env.WIDTH / 2;
-            return new V(x, y);
+            return V.Get(x, y);
         }
     }
 }

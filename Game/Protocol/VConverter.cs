@@ -14,7 +14,7 @@ namespace Game.Protocol
         public override V ReadJson(JsonReader reader, Type objectType, V existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             var ints = serializer.Deserialize<int[]>(reader);
-            return new V(ints[0], ints[1]);
+            return V.Get(ints[0], ints[1]);
         }
     }
 }

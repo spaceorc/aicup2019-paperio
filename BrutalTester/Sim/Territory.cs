@@ -163,7 +163,7 @@ namespace BrutalTester.Sim
                 var y = max_y;
                 while (y > min_y)
                 {
-                    var v = new V(x, y);
+                    var v = V.Get(x, y);
                     if (!Points.Contains(v) && InPolygon(x, y, poligon_x_arr, poligon_y_arr))
                     {
                         Points.Add(v);
