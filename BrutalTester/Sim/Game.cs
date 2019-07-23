@@ -121,6 +121,7 @@ namespace BrutalTester.Sim
                     Losers.Add(player);
             }
 
+            var playerToCaptured = new Dictionary<int, HashSet<V>>();
             foreach (var player in Players)
             {
                 player.RemoveSawBonus();
@@ -128,12 +129,24 @@ namespace BrutalTester.Sim
                 {
                     player.UpdateLines();
                     var captured = player.Territory.Capture(player.Lines);
+                    playerToCaptured[player.Id] = captured;
                     if (captured.Count > 0)
                     {
                         player.Lines.Clear();
                         player.Score += Env.NEUTRAL_TERRITORY_SCORE * captured.Count;
                     }
+                }
+            }
 
+            playerToCaptured = CollisionResolution(playerToCaptured);
+
+            foreach (var player in Players)
+            {
+                if (player.Pos.InCellCenter(Env.WIDTH))
+                {
+                    if (!playerToCaptured.TryGetValue(player.Id, out var captured))
+                        captured = new HashSet<V>();
+                
                     player.TickAction();
 
                     foreach (var bonus in Bonuses.ToList())
@@ -157,7 +170,7 @@ namespace BrutalTester.Sim
                                         }
                                         else
                                         {
-                                            var removed = p.Territory.Split(line, player.Direction, p);
+                                            var removed = p.Territory.Split(line, player.Dir ?? throw new InvalidOperationException(), p);
                                             if (removed.Count > 0)
                                                 player.Score += Env.SAW_SCORE;
                                         }
@@ -167,12 +180,16 @@ namespace BrutalTester.Sim
                         }
                     }
 
-                    foreach (var p in Players)
+                    if (captured.Count > 0)
                     {
-                        if (p != player)
+                        player.Territory.Points.UnionWith(captured);
+                        foreach (var p in Players)
                         {
-                            var removed = p.Territory.RemovePoints(captured);
-                            player.Score += (Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE) * removed.Count;
+                            if (p != player)
+                            {
+                                var removed = p.Territory.RemovePoints(captured);
+                                player.Score += (Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE) * removed.Count;
+                            }
                         }
                     }
                 }
@@ -185,6 +202,18 @@ namespace BrutalTester.Sim
 
             Tick++;
             return Players.Count == 0;
+        }
+
+        private Dictionary<int, HashSet<V>> CollisionResolution(Dictionary<int,HashSet<V>> playerToCaptured)
+        {
+            var res = playerToCaptured.ToDictionary(x => x.Key, x => x.Value);
+            foreach (var kvp1 in playerToCaptured)
+            foreach (var kvp2 in playerToCaptured)
+            {
+                if (kvp1.Key != kvp2.Key)
+                    res[kvp1.Key].ExceptWith(kvp2.Value);
+            }
+            return res;
         }
 
         private Direction SendTick(Player player)
@@ -200,7 +229,7 @@ namespace BrutalTester.Sim
                                 position = x.Pos,
                                 lines = x.Lines.ToArray(),
                                 territory = x.Territory.Points.ToArray(),
-                                direction = x.Direction,
+                                direction = x.Dir,
                                 score = x.Score,
                                 bonuses = x.Bonuses.Select(
                                         b => new RequestInput.BonusState

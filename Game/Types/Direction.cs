@@ -5,6 +5,6 @@ namespace Game.Types
         Up,
         Left,
         Down,
-        Right,
+        Right
     }
 }

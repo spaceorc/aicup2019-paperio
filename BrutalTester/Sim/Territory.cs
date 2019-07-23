@@ -29,10 +29,7 @@ namespace BrutalTester.Sim
                     foreach (var line in lines)
                     {
                         if (!Points.Contains(line))
-                        {
-                            Points.Add(line);
                             captured.Add(line);
-                        }
                     }
 
                     foreach (var @void in voids)
@@ -165,10 +162,7 @@ namespace BrutalTester.Sim
                 {
                     var v = V.Get(x, y);
                     if (!Points.Contains(v) && InPolygon(x, y, poligon_x_arr, poligon_y_arr))
-                    {
-                        Points.Add(v);
                         captured.Add(v);
-                    }
 
                     y -= Env.WIDTH;
                 }
@@ -177,6 +171,11 @@ namespace BrutalTester.Sim
             }
 
             return captured;
+        }
+
+        private static bool IsSiblings(V p1, V p2)
+        {
+            return p1.GetVertAndHoriz(Env.WIDTH).Contains(p2);
         }
 
         private static bool InPolygon(int x, int y, int[] xp, int[] yp)
@@ -198,30 +197,44 @@ namespace BrutalTester.Sim
             var boundary = GetBoundary();
             var voids = new List<List<V>>();
 
-            foreach (var cur in lines)
+            for (var i_lp1 = 0; i_lp1 < lines.Count; i_lp1++)
             {
-                foreach (var point in cur.GetNeighboring(Env.WIDTH))
+                var lp1 = lines[i_lp1];
+                foreach (var point in lp1.GetNeighboring(Env.WIDTH))
                 {
                     if (boundary.Contains(point))
                     {
-                        var startPoint = GetNearestBoundary(lines[0], boundary);
-                        if (startPoint != null)
+                        V prev = null;
+                        for (var i_lp2 = 0; i_lp2 <= i_lp1; i_lp2++)
                         {
-                            var endIndex = boundary.IndexOf(point);
-                            var startIndex = boundary.IndexOf(startPoint);
-                            var path = GetPath(startIndex, endIndex, boundary);
-                            if (path == null)
-                                continue;
+                            var lp2 = lines[i_lp2];
+                            var startPoint = GetNearestBoundary(lp2, boundary);
+                            if (startPoint != null)
+                            {
+                                if (prev != null && (IsSiblings(prev, startPoint) || prev == startPoint))
+                                {
+                                    prev = startPoint;
+                                    continue;
+                                }
+                                
+                                var endIndex = boundary.IndexOf(point);
+                                var startIndex = boundary.IndexOf(startPoint);
+                                var path = GetPath(startIndex, endIndex, boundary);
+                                if (path == null)
+                                    continue;
 
-                            if (path.Count > 1 && path[0] == path[path.Count - 1])
-                                path = path.GetRange(1, path.Count - 1);
+                                if (path.Count > 1 && path[0] == path[path.Count - 1])
+                                    path = path.GetRange(1, path.Count - 1);
 
-                            voids.Add(
-                                lines
-                                    .GetRange(0, lines.IndexOf(cur) + 1)
-                                    .Concat(path.Select(index => boundary[index]))
-                                    .ToList()
-                            );
+                                voids.Add(
+                                    lines
+                                        .GetRange(i_lp2, i_lp1 - i_lp2 + 1)
+                                        .Concat(path.Select(index => boundary[index]))
+                                        .ToList()
+                                );
+                            }
+
+                            prev = startPoint;
                         }
                     }
                 }
@@ -241,13 +254,18 @@ namespace BrutalTester.Sim
             return null;
         }
 
+        private static IEnumerable<V> GetSiblings(V point, List<V> boundary)
+        {
+            return point.GetNeighboring(Env.WIDTH).Where(boundary.Contains);
+        }
+
         private static List<int> GetPath(int startIndex, int endIndex, List<V> boundary)
         {
             var graph = new Graph();
             for (var index = 0; index < boundary.Count; index++)
             {
                 var point = boundary[index];
-                var siblings = point.GetVertAndHoriz(Env.WIDTH).Where(boundary.Contains);
+                var siblings = GetSiblings(point, boundary);
                 foreach (var sibling in siblings)
                     graph.AddEdge(index, boundary.IndexOf(sibling));
             }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Protocol;
@@ -11,7 +10,7 @@ namespace BrutalTester.Sim
         public int Id { get; }
         public V Pos { get; private set; }
         public int Speed { get; set; }
-        public Direction Direction { get; private set; }
+        public Direction? Dir { get; private set; }
         public List<V> Lines { get; } = new List<V>();
         public Territory Territory { get; }
         public List<Bonus> Bonuses { get; } = new List<Bonus>();
@@ -24,20 +23,20 @@ namespace BrutalTester.Sim
             Pos = pos;
             Client = client;
             Speed = Env.SPEED;
-            Direction = Direction.Initial;
+            Dir = null;
             Territory = new Territory(pos);
         }
 
         public void ChangeDirection(Direction command)
         {
-            if (command == Direction.Up && Direction != Direction.Down)
-                Direction = Direction.Up;
-            if (command == Direction.Down && Direction != Direction.Up)
-                Direction = Direction.Down;
-            if (command == Direction.Left && Direction != Direction.Right)
-                Direction = Direction.Left;
-            if (command == Direction.Right && Direction != Direction.Left)
-                Direction = Direction.Right;
+            if (command == Direction.Up && Dir != Direction.Down)
+                Dir = Direction.Up;
+            if (command == Direction.Down && Dir != Direction.Up)
+                Dir = Direction.Down;
+            if (command == Direction.Left && Dir != Direction.Right)
+                Dir = Direction.Left;
+            if (command == Direction.Right && Dir != Direction.Left)
+                Dir = Direction.Right;
         }
 
         public void Move()
@@ -91,10 +90,10 @@ namespace BrutalTester.Sim
         }
 
         private V GetShift(int d) =>
-            Direction == Direction.Up ? V.Get(0, d)
-            : Direction == Direction.Down ? V.Get(0, -d)
-            : Direction == Direction.Right ? V.Get(d, 0)
-            : Direction == Direction.Left ? V.Get(-d, 0)
-            : throw new InvalidOperationException($"Unknown direction: {Direction}");
+            Dir == Direction.Up ? V.Get(0, d)
+            : Dir == Direction.Down ? V.Get(0, -d)
+            : Dir == Direction.Right ? V.Get(d, 0)
+            : Dir == Direction.Left ? V.Get(-d, 0)
+            : V.Zero;
     }
 }

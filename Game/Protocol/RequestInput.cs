@@ -18,7 +18,7 @@ namespace Game.Protocol
         public class PlayerData
         {
             public int score;
-            public Direction direction;
+            public Direction? direction;
             public V[] territory;
             public V position;
             public V[] lines;
