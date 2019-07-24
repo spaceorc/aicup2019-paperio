@@ -15,6 +15,7 @@ namespace BrutalTester.Sim
         public Territory Territory { get; }
         public List<Bonus> Bonuses { get; } = new List<Bonus>();
         public int Score { get; set; }
+        public int TickScore { get; set; }
         public IClient Client { get; }
 
         public Player(int id, V pos, IClient client)
@@ -95,5 +96,10 @@ namespace BrutalTester.Sim
             : Dir == Direction.Right ? V.Get(d, 0)
             : Dir == Direction.Left ? V.Get(-d, 0)
             : V.Zero;
+
+        public bool IsAte(Dictionary<Player, HashSet<V>> playerToCaptured)
+        {
+            return playerToCaptured.Any(kvp => kvp.Key != this && kvp.Value.Contains(Pos));
+        }
     }
 }
