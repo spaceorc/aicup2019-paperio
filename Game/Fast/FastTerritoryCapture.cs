@@ -6,20 +6,27 @@ namespace Game.Fast
 {
     public class FastTerritoryCapture
     {
-        public int gen;
+        private int gen;
+        
         public int[,] territoryCaptureMask;
-
         public int[] territoryCaptureCount;
         public V[,] territoryCapture;
 
+        private int queueGen;
+        private V[] queue;
+        private int[,] used;
+        
         public void Init(Config config, int playerCount)
         {
             gen = 0;
+            queueGen = 0;
             if (territoryCaptureMask == null
                 || territoryCaptureMask.GetLength(0) != config.x_cells_count
                 || territoryCaptureMask.GetLength(1) != config.y_cells_count)
             {
                 territoryCaptureMask = new int[config.x_cells_count, config.y_cells_count];
+                queue = new V[config.x_cells_count * config.y_cells_count];
+                used = new int[config.x_cells_count, config.y_cells_count];
             }
             else
             {
@@ -27,6 +34,7 @@ namespace Game.Fast
                 for (int y = 0; y < config.y_cells_count; y++)
                 {
                     territoryCaptureMask[x, y] = 0;
+                    used[x, y] = 0;
                 }
             }
 
@@ -59,6 +67,9 @@ namespace Game.Fast
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool BelongsTo(V v, int player)
         {
+            var mask = territoryCaptureMask[v.X, v.Y];
+            return ((mask & ~0xFF) == gen)
+                   & ((mask & 0xFF) - (1 << player) == 0);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,19 +93,6 @@ namespace Game.Fast
 
         public void ApplyTo(FastState state)
         {
-            // todo 
-            /*if (captured.Count > 0)
-                    {
-                        player.Territory.Points.UnionWith(captured);
-                        foreach (var p in Players)
-                        {
-                            if (p != player)
-                            {
-                                var removed = p.Territory.RemovePoints(captured);
-                                player.Score += (Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE) * removed.Count;
-                            }
-                        }
-                    }*/
             for (int player = 0; player < territoryCaptureCount.Length; player++)
             {
                 for (int i = 0; i < territoryCaptureCount[i]; i++)
@@ -102,16 +100,82 @@ namespace Game.Fast
                     var v = territoryCapture[player, i];
                     var mask = territoryCaptureMask[v.X, v.Y] & 0xFF;
                     if ((mask & ~(1 << player)) == 0)
+                    {
+                        if (state.territory[v.X, v.Y] != 0xFF && state.territory[v.X, v.Y] != player)
+                            state.players[player].tickScore += Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE;
                         state.territory[v.X, v.Y] = (byte)player;
+                    }
                 }
             }
         }
 
-        public void Capture(FastState state)
+        public void Capture(FastState state, int player, Config config)
         {
-            for (int i = 0; i < state.players.Length; i++)
+            if (state.territory[state.players[player].pos.X, state.players[player].pos.Y] != player)
+                return;
+
+            queueGen++;
+
+            var tail = 0;
+            var head = 0;
+
+            for (int x = 0; x < config.x_cells_count; x++)
             {
-                
+                if (state.territory[x, 0] != player && (state.lines[x, 0] & (1 << player)) == 0)
+                {
+                    queue[head++] = V.Get(x, 0);
+                    used[x, 0] = queueGen;
+                }
+
+                if (state.territory[x, config.y_cells_count - 1] != player && (state.lines[x, config.y_cells_count - 1] & (1 << player)) == 0)
+                {
+                    queue[head++] = V.Get(x, config.y_cells_count - 1);
+                    used[x, config.y_cells_count - 1] = queueGen;
+                }
+            }
+
+            for (int y = 0; y < config.y_cells_count; y++)
+            {
+                if (state.territory[0, y] != player && (state.lines[0, y] & (1 << player)) == 0)
+                {
+                    queue[head++] = V.Get(0, y);
+                    used[0, y] = queueGen;
+                }
+
+                if (state.territory[config.x_cells_count - 1, y] != player && (state.lines[config.x_cells_count - 1, y] & (1 << player)) == 0)
+                {
+                    queue[head++] = V.Get(config.x_cells_count - 1, y);
+                    used[config.x_cells_count - 1, y] = queueGen;
+                }
+            }
+
+            while (tail < head)
+            {
+                var cur = queue[tail++];
+                for (var s = 0; s < V.vertAndHoriz.Length; s++)
+                {
+                    var shift = V.vertAndHoriz[s];
+                    var next = cur + shift;
+                    if (next.X >= 0 && next.X < config.x_cells_count && next.Y >= 0 && next.Y < config.y_cells_count)
+                    {
+                        if (used[next.X, next.Y] == queueGen)
+                            continue;
+                        if (state.territory[next.X, next.Y] != player && (state.lines[next.X, next.Y] & (1 << player)) == 0)
+                        {
+                            used[next.X, next.Y] = queueGen;
+                            queue[head++] = next;
+                        }
+                    }
+                }
+            }
+            
+            
+            for (int x = 0; x < config.x_cells_count; x++)
+            for (int y = 0; y < config.y_cells_count; y++)
+            {
+                var v = V.Get(x, y);
+                if (used[x, y] != queueGen)
+                    Add(v, player);
             }
         }
     }

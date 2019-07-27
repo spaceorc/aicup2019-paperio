@@ -13,6 +13,7 @@ namespace Game.Fast
         public int shiftTime;
 
         public int score;
+        public int tickScore;
         public int nitroLeft;
         public int slowLeft;
         public int territory;
@@ -48,6 +49,28 @@ namespace Game.Fast
                 line[lineCount++] = pos;
                 state.lines[pos.X, pos.Y] = (byte)(state.lines[pos.X, pos.Y] | (1 << player));
             }
+        }
+
+        public void RenewArriveTime()
+        {
+            if (dir == null)
+                return;
+            
+            if (arriveTime == 0)
+            {
+                arriveTime = shiftTime;
+                arrivePos = arrivePos + V.vertAndHoriz[(int)dir];
+            }
+        }
+        
+        public void Move(int time)
+        {
+            if (dir == null)
+                return;
+            
+            arriveTime -= time;
+            if (arriveTime == 0)
+                pos = arrivePos;
         }
     }
 }

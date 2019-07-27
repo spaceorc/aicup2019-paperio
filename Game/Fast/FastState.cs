@@ -5,18 +5,6 @@ using Game.Types;
 
 namespace Game.Fast
 {
-    public class FastBonus
-    {
-        public BonusType type;
-        public V pos;
-
-        public FastBonus(RequestInput.BonusData inputBonusData, Config config)
-        {
-            type = inputBonusData.type;
-            pos = inputBonusData.position.ToCellCoords(config.width);
-        }
-    }
-
     public class FastState
     {
         public int curPlayer;
@@ -159,44 +147,211 @@ namespace Game.Fast
 
         public bool NextTurn(Config config)
         {
+            var timeDelta = RenewArriveTime();
+
+            time += timeDelta;
+            turn++;
+            if (time > Env.MAX_TICK_COUNT)
+                return true;
+
+            Move(timeDelta);
+
+            CheckLoss(config);
+
+            // Main
+            capture.Clear();
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                if (players[i].arriveTime == 0)
+                {
+                    // UpdateLines
+                    players[i].UpdateLines(i, this);
+
+                    // Capture
+                    capture.Capture(this, i, config);
+                    if (capture.territoryCaptureCount[i] > 0)
+                    {
+                        players[i].lineCount = 0;
+                        players[i].tickScore += Env.NEUTRAL_TERRITORY_SCORE * capture.territoryCaptureCount[i];
+                    }
+                }
+            }
+
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                if (players[i].arriveTime == 0)
+                {
+                    players[i].TickAction(config);
+
+                    for (int b = 0; b < bonusCount; b++)
+                    {
+                        if (bonuses[b].pos == players[i].pos || capture.BelongsTo(bonuses[b].pos, i))
+                        {
+                            if (bonuses[b].type == BonusType.N)
+                            {
+                                if (players[i].nitroLeft > 0)
+                                    players[i].nitroLeft += 30; // random 10..50
+                                else
+                                    players[i].nitroLeft = 30;
+                                players[i].UpdateBonusEffect(config);
+                            }
+                            else if (bonuses[b].type == BonusType.S)
+                            {
+                                if (players[i].slowLeft > 0)
+                                    players[i].slowLeft += 30; // random 10..50
+                                else
+                                    players[i].slowLeft = 30;
+                                players[i].UpdateBonusEffect(config);
+                            }
+                            else if (bonuses[b].type == BonusType.Saw)
+                            {
+                                var shift = V.vertAndHoriz[(int)players[i].dir.Value];
+                                var sawStatus = 0L;
+                                var v = players[i].pos;
+                                while (v.X > 0 && v.Y > 0 && v.X < config.x_cells_count - 1 && v.Y < config.y_cells_count - 1)
+                                {
+                                    v += shift;
+                                    for (int k = 0; k < players.Length; k++)
+                                    {
+                                        if (k == i || players[k].status == PlayerStatus.Eliminated)
+                                            continue;
+                                        if (players[k].pos == v || players[k].arrivePos == v)
+                                        {
+                                            sawStatus |= 0xFF << (k * 8);
+                                            players[k].status = PlayerStatus.Loser;
+                                            players[i].tickScore += Env.SAW_KILL_SCORE;
+                                        }
+                                    }
+
+                                    var owner = territory[v.X, v.Y];
+                                    if (owner != 0xFF && owner != i)
+                                    {
+                                        if (players[owner].status != PlayerStatus.Eliminated)
+                                        {
+                                            if ((sawStatus & (0xFF << (owner * 8))) == 0)
+                                                sawStatus |= 1 << (owner * 8);
+                                        }
+                                    }
+                                }
+
+                                for (int k = 0; k < players.Length; k++)
+                                {
+                                    if (k == i || players[k].status == PlayerStatus.Eliminated)
+                                        continue;
+
+                                    if (((sawStatus >> (k * 8)) & 0xFF) != 1)
+                                        continue;
+
+                                    players[i].tickScore += Env.SAW_SCORE;
+                                    if (shift.X == 0)
+                                    {
+                                        if (players[k].pos.X < v.X)
+                                        {
+                                            for (int x = v.X; x < config.x_cells_count; x++)
+                                            for (int y = 0; y < config.y_cells_count; y++)
+                                            {
+                                                if (territory[x, y] == k)
+                                                    territory[x, y] = 0xFF;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            for (int x = 0; x <= v.X; x++)
+                                            for (int y = 0; y < config.y_cells_count; y++)
+                                            {
+                                                if (territory[x, y] == k)
+                                                    territory[x, y] = 0xFF;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (players[k].pos.Y < v.Y)
+                                        {
+                                            for (int x = 0; x < config.x_cells_count; x++)
+                                            for (int y = v.Y; y < config.y_cells_count; y++)
+                                            {
+                                                if (territory[x, y] == k)
+                                                    territory[x, y] = 0xFF;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            for (int x = 0; x < config.x_cells_count; x++)
+                                            for (int y = 0; y <= v.Y; y++)
+                                            {
+                                                if (territory[x, y] == k)
+                                                    territory[x, y] = 0xFF;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            bonuses[b] = bonuses[bonusCount-- - 1];
+                        }
+                    }
+
+                    capture.ApplyTo(this);
+                }
+            }
+
+            var playersLeft = 0;
+            for (int i = 0; i < players.Length; i++)
+            {
+                switch (players[i].status)
+                {
+                    case PlayerStatus.Loser:
+                        players[i].status = PlayerStatus.Eliminated;
+                        break;
+                    case PlayerStatus.Active:
+                        playersLeft++;
+                        break;
+                }
+            }
+
+            return playersLeft > 0;
+        }
+
+        private int RenewArriveTime()
+        {
             var minArriveTime = int.MaxValue;
             for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].dir == null)
-                {
-                    minArriveTime = 1;
-                    continue;
-                }
-
-                if (players[i].arriveTime == 0)
-                {
-                    players[i].arriveTime = players[i].shiftTime;
-                    players[i].arrivePos = players[i].arrivePos + V.vertAndHoriz[(int)players[i].dir];
-                }
+                players[i].RenewArriveTime();
 
                 if (players[i].arriveTime < minArriveTime)
                     minArriveTime = players[i].arriveTime;
             }
 
-            time += minArriveTime;
-            turn++;
-            if (time > Env.MAX_TICK_COUNT)
-                return true;
+            if (minArriveTime == 0)
+                minArriveTime = 1;
 
-            // Move
+            return minArriveTime;
+        }
+
+        private void Move(int timeDelta)
+        {
             for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
-                players[i].arriveTime -= minArriveTime;
-                if (players[i].arriveTime == 0)
-                    players[i].pos = players[i].arrivePos;
-            }
 
-            // CheckLoss
+                players[i].Move(timeDelta);
+            }
+        }
+
+        private void CheckLoss(Config config)
+        {
             for (int i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
@@ -222,7 +377,7 @@ namespace Game.Fast
                     {
                         players[i].status = PlayerStatus.Loser;
                         if (k != i)
-                            players[k].score += Env.LINE_KILL_SCORE;
+                            players[k].tickScore += Env.LINE_KILL_SCORE;
                     }
                 }
 
@@ -274,132 +429,6 @@ namespace Game.Fast
                     }
                 }
             }
-
-            // Main
-            capture.Clear();
-            for (int i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                if (players[i].arriveTime == 0)
-                {
-                    // UpdateLines
-                    players[i].UpdateLines(i, this);
-
-                    // Capture
-                    capture.Capture(this);
-                    if (capture.territoryCaptureCount[i] > 0)
-                    {
-                        players[i].lineCount = 0;
-                        players[i].score += Env.NEUTRAL_TERRITORY_SCORE * capture.territoryCaptureCount[i];
-                    }
-                }
-            }
-
-            for (int i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                if (players[i].arriveTime == 0)
-                {
-                    players[i].TickAction(config);
-
-                    for (int b = 0; b < bonusCount; b++)
-                    {
-                        if (bonuses[b].pos == players[i].pos || capture.BelongsTo(bonuses[b].pos, i))
-                        {
-                            if (bonuses[b].type == BonusType.N)
-                            {
-                                if (players[i].nitroLeft > 0)
-                                    players[i].nitroLeft += 30; // random 10..50
-                                else
-                                    players[i].nitroLeft = 30;
-                                players[i].UpdateBonusEffect(config);
-                            }
-                            else if (bonuses[b].type == BonusType.S)
-                            {
-                                if (players[i].slowLeft > 0)
-                                    players[i].slowLeft += 30; // random 10..50
-                                else
-                                    players[i].slowLeft = 30;
-                                players[i].UpdateBonusEffect(config);
-                            }
-                            else if (bonuses[b].type == BonusType.Saw)
-                            {
-                                for (int k = 0; k < players.Length; k++)
-                                {
-                                    if (k == i || players[k].status == PlayerStatus.Eliminated)
-                                        continue;
-
-                                    var sawKill = false;
-                                    switch (players[i].dir.Value)
-                                    {
-                                        case Direction.Up:
-                                            if (players[k].pos.X == players[i].pos.X && players[k].pos.Y > players[i].pos.Y
-                                                || players[k].arrivePos.X == players[i].pos.X && players[k].arrivePos.Y > players[i].pos.Y)
-                                                sawKill = true;
-                                            break;
-                                        case Direction.Left:
-                                            if (players[k].pos.Y == players[i].pos.Y && players[k].pos.X < players[i].pos.X
-                                                || players[k].arrivePos.Y == players[i].pos.Y && players[k].arrivePos.X < players[i].pos.X)
-                                                sawKill = true;
-                                            break;
-                                        case Direction.Down:
-                                            if (players[k].pos.X == players[i].pos.X && players[k].pos.Y < players[i].pos.Y
-                                                || players[k].arrivePos.X == players[i].pos.X && players[k].arrivePos.Y < players[i].pos.Y)
-                                                sawKill = true;
-                                            break;
-                                        case Direction.Right:
-                                            if (players[k].pos.Y == players[i].pos.Y && players[k].pos.X > players[i].pos.X
-                                                || players[k].arrivePos.Y == players[i].pos.Y && players[k].arrivePos.X > players[i].pos.X)
-                                                sawKill = true;
-                                            break;
-                                        default:
-                                            throw new ArgumentOutOfRangeException();
-                                    }
-                                    
-                                    if (sawKill)
-                                    {
-                                        players[k].status = PlayerStatus.Loser;
-                                        players[i].score += Env.SAW_KILL_SCORE;
-                                    }
-                                    else
-                                    {
-                                        // todo 
-                                        /*
-                                         * var removed = p.Territory.Split(line, player.Dir ?? throw new InvalidOperationException(), p);
-                                            if (removed.Count > 0)
-                                                player.Score += Env.SAW_SCORE;
-                                         */
-                                    }
-                                }
-                            }
-
-                            bonuses[b] = bonuses[bonusCount-- - 1];
-                        }
-                    }
-                    
-                    capture.ApplyTo(this);
-                }
-            }
-
-            var playersLeft = 0;
-            for (int i = 0; i < players.Length; i++)
-            {
-                switch (players[i].status)
-                {
-                    case PlayerStatus.Loser:
-                        players[i].status = PlayerStatus.Eliminated;
-                        break;
-                    case PlayerStatus.Active:
-                        playersLeft++;
-                        break;
-                }
-            }
-
-            return playersLeft > 0;
         }
     }
 }
