@@ -75,6 +75,32 @@ namespace BrutalTester.Sim
                 }
             }
         }
+        
+        public static V DiffPosition(Direction direction, V pos, int val)
+        {
+            return pos - V.vertAndHoriz[(int)direction] * val;
+        }
+
+        public (V pos, bool isMove) GetPosition()
+        {
+            if (Dir == null)
+                return (Pos, false);
+
+            var v = Pos;
+            while (!v.InCellCenter(Env.WIDTH))
+            {
+                v = DiffPosition(Dir.Value, v, Speed);
+            }
+
+            return (v, v != Pos);
+        }
+
+        public V GetPrevPosition()
+        {
+            if (Dir == null)
+                return Pos;
+            return DiffPosition(Dir.Value, Pos, Env.WIDTH);
+        }
 
         public List<V> GetDirectionLine()
         {
@@ -99,7 +125,13 @@ namespace BrutalTester.Sim
 
         public bool IsAte(Dictionary<Player, HashSet<V>> playerToCaptured)
         {
-            return playerToCaptured.Any(kvp => kvp.Key != this && kvp.Value.Contains(Pos));
+            foreach (var (p, captured) in playerToCaptured)
+            {
+                var (position, isMove) = GetPosition();
+                if (this != p && captured.Contains(position) && (isMove || captured.Contains(GetPrevPosition())))
+                    return true;
+            }
+            return false;
         }
     }
 }
