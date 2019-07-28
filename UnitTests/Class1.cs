@@ -33,7 +33,7 @@ namespace UnitTests
             var stopwatch = Stopwatch.StartNew();
             long counter = 0;
             
-            while (stopwatch.ElapsedMilliseconds < 400)
+            while (stopwatch.ElapsedMilliseconds < 4000)
             {
                 counter++;
                 // for (int i = 0; i < state.players.Length; i++)

@@ -505,23 +505,32 @@ namespace Game.Fast
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
-
-                if (players[i].arrivePos == ushort.MaxValue)
-                    players[i].status = PlayerStatus.Loser;
-
-                for (int k = 0; k < players.Length; k++)
+                
+                if (players[i].status != PlayerStatus.Loser)
+                {
+                    if (players[i].territory == 0)
+                        players[i].status = PlayerStatus.Loser;
+                    else if (players[i].arrivePos == ushort.MaxValue)
+                        players[i].status = PlayerStatus.Loser;
+                    else if (players[i].arriveTime == 0 && (lines[players[i].arrivePos] & (1 << i)) != 0)
+                        players[i].status = PlayerStatus.Loser;
+                }
+                
+                for (int k = i + 1; k < players.Length; k++)
                 {
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;
-
-                    if (players[k].arriveTime != 0)
-                        continue;
-
+                    
                     if (players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
-                        if (k != i)
-                            players[k].tickScore += Env.LINE_KILL_SCORE;
+                        players[k].tickScore += Env.LINE_KILL_SCORE;
+                    }
+                    
+                    if (players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
+                    {
+                        players[k].status = PlayerStatus.Loser;
+                        players[i].tickScore += Env.LINE_KILL_SCORE;
                     }
                 }
             }
@@ -535,56 +544,55 @@ namespace Game.Fast
                     players[i].UpdateLines(i, this);
             }
 
-            for (int i = 0; i < players.Length; i++)
+            for (int i = 0; i < players.Length - 1; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].status != PlayerStatus.Loser)
+                for (int k = i + 1; k < players.Length; k++)
                 {
-                    if (players[i].territory == 0)
-                        players[i].status = PlayerStatus.Loser;
+                    if (players[k].status == PlayerStatus.Eliminated)
+                        continue;
+                    
+                    if ((players[i].status == PlayerStatus.Loser || players[i].lineCount < players[k].lineCount) 
+                        && (players[k].status == PlayerStatus.Loser || players[k].lineCount < players[i].lineCount))
+                        continue;
+                    
+                    var collides = false;
+                    if (players[i].arrivePos == players[k].arrivePos)
+                        collides = true;
                     else
                     {
-                        for (int k = 0; k < players.Length; k++)
+                        if (players[i].arrivePos == players[k].pos && players[k].arriveTime > 0)
                         {
-                            if (k == i || players[k].status == PlayerStatus.Eliminated)
-                                continue;
-                            if ((players[i].lineCount) >= players[k].lineCount)
+                            if (players[i].dir != players[k].dir)
+                                collides = true;
+                            else
                             {
-                                var collides = false;
-                                if (players[i].arrivePos == players[k].arrivePos)
-                                    collides = true;
-                                else
-                                {
-                                    if (players[i].arrivePos == players[k].pos && players[k].arriveTime > 0)
-                                    {
-                                        if (players[i].dir != players[k].dir)
-                                            collides = true;
-                                        else
-                                        {
-                                            var distArrive1 = config.width / players[i].shiftTime * players[i].arriveTime;
-                                            var distArrive2 = config.width / players[k].shiftTime * players[k].arriveTime;
-                                            collides = distArrive1 < distArrive2;
-                                        }
-                                    }
-                                    else if (players[k].arrivePos == players[i].pos && players[i].arriveTime > 0)
-                                    {
-                                        if (players[k].dir != players[i].dir)
-                                            collides = true;
-                                        else
-                                        {
-                                            var distArrive2 = config.width / players[k].shiftTime * players[k].arriveTime;
-                                            var distArrive1 = config.width / players[i].shiftTime * players[i].arriveTime;
-                                            collides = distArrive2 < distArrive1;
-                                        }
-                                    }
-                                }
-
-                                if (collides)
-                                    players[i].status = PlayerStatus.Loser;
+                                var distArrive1 = config.width / players[i].shiftTime * players[i].arriveTime;
+                                var distArrive2 = config.width / players[k].shiftTime * players[k].arriveTime;
+                                collides = distArrive1 < distArrive2;
                             }
                         }
+                        else if (players[k].arrivePos == players[i].pos && players[i].arriveTime > 0)
+                        {
+                            if (players[k].dir != players[i].dir)
+                                collides = true;
+                            else
+                            {
+                                var distArrive2 = config.width / players[k].shiftTime * players[k].arriveTime;
+                                var distArrive1 = config.width / players[i].shiftTime * players[i].arriveTime;
+                                collides = distArrive2 < distArrive1;
+                            }
+                        }
+                    }
+
+                    if (collides)
+                    {
+                        if (players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
+                            players[i].status = PlayerStatus.Loser;
+                        if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
+                            players[k].status = PlayerStatus.Loser;
                     }
                 }
             }
