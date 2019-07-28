@@ -101,7 +101,7 @@ namespace BrutalTester.Sim
             }
         }
 
-        private bool GameLoop()
+        public bool GameLoop()
         {
             foreach (var player in Players)
             {
@@ -263,7 +263,7 @@ namespace BrutalTester.Sim
                 .Command;
         }
 
-        private void SendGameStart()
+        public void SendGameStart()
         {
             foreach (var player in Players)
             {

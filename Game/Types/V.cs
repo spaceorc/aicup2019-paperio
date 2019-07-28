@@ -14,30 +14,34 @@ namespace Game.Types
 
         static V()
         {
-            for (int x = 0; x < 31; x++)
-            for (int y = 0; x < 31; x++)
+            for (int x = -30; x < 31; x++)
+            for (int y = -30; y < 31; y++)
             {
-                cache[x, y] = Get(x, y);
+                cache[x + 30, y + 30] = new V(x, y);
             }
+
+            Zero = Get(0, 0);
+            diagonals = new[]
+            {
+                Get(1, 1),
+                Get(-1, 1),
+                Get(1, -1),
+                Get(-1, -1),
+            };
+            vertAndHoriz = new[]
+            {
+                Get(0, 1),
+                Get(-1, 0),
+                Get(0, -1),
+                Get(1, 0),
+            };
         }
 
-        public static V Zero = Get(0, 0);
+        public static readonly V Zero;
 
-        private static readonly V[] diagonals =
-        {
-            Get(1, 1),
-            Get(-1, 1),
-            Get(1, -1),
-            Get(-1, -1),
-        };
+        private static readonly V[] diagonals;
 
-        public static readonly V[] vertAndHoriz =
-        {
-            Get(0, 1),
-            Get(-1, 0),
-            Get(0, -1),
-            Get(1, 0),
-        };
+        public static readonly V[] vertAndHoriz;
 
         private V(int x, int y)
         {

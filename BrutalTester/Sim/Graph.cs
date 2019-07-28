@@ -8,10 +8,12 @@ namespace BrutalTester.Sim
 
         public void AddEdge(int a, int b)
         {
-            edges.TryAdd(a, new HashSet<int>());
-            edges.TryAdd(b, new HashSet<int>());
-            edges[a].Add(b);
-            edges[b].Add(a);
+            if (!edges.TryGetValue(a, out var aset))
+                edges.Add(a, aset = new HashSet<int>());
+            if (!edges.TryGetValue(b, out var bset))
+                edges.Add(b, bset = new HashSet<int>());
+            aset.Add(b);
+            bset.Add(a);
         }
 
         public List<int> FindPath(int start, int end)

@@ -7,7 +7,7 @@ namespace Game.Fast
     public class FastTerritoryCapture
     {
         private int gen;
-        
+
         public int[,] territoryCaptureMask;
         public int[] territoryCaptureCount;
         public V[,] territoryCapture;
@@ -15,7 +15,7 @@ namespace Game.Fast
         private int queueGen;
         private V[] queue;
         private int[,] used;
-        
+
         public void Init(Config config, int playerCount)
         {
             gen = 0;
@@ -73,6 +73,17 @@ namespace Game.Fast
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsEaten(V v, int player)
+        {
+            var mask = territoryCaptureMask[v.X, v.Y];
+            if ((mask & ~0xFF) != gen)
+                return false;
+
+            mask &= 0xFF;
+            return (mask & ~(1 << player)) != 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(V v, int player)
         {
             var mask = territoryCaptureMask[v.X, v.Y];
@@ -101,9 +112,18 @@ namespace Game.Fast
                     var mask = territoryCaptureMask[v.X, v.Y] & 0xFF;
                     if ((mask & ~(1 << player)) == 0)
                     {
-                        if (state.territory[v.X, v.Y] != 0xFF && state.territory[v.X, v.Y] != player)
-                            state.players[player].tickScore += Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE;
-                        state.territory[v.X, v.Y] = (byte)player;
+                        if (state.territory[v.X, v.Y] != player)
+                        {
+                            if (state.territory[v.X, v.Y] != 0xFF)
+                            {
+                                state.players[player].tickScore += Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE;
+                                state.players[state.territory[v.X, v.Y]].territory--;
+                            }
+
+                            state.players[player].territory++;
+                            state.territory[v.X, v.Y] = (byte)player;
+                            state.territoryVersion++;
+                        }
                     }
                 }
             }
@@ -111,7 +131,9 @@ namespace Game.Fast
 
         public void Capture(FastState state, int player, Config config)
         {
-            if (state.territory[state.players[player].pos.X, state.players[player].pos.Y] != player)
+            if (state.players[player].lineCount == 0)
+                return;
+            if (state.territory[state.players[player].arrivePos.X, state.players[player].arrivePos.Y] != player)
                 return;
 
             queueGen++;
@@ -168,8 +190,7 @@ namespace Game.Fast
                     }
                 }
             }
-            
-            
+
             for (int x = 0; x < config.x_cells_count; x++)
             for (int y = 0; y < config.y_cells_count; y++)
             {

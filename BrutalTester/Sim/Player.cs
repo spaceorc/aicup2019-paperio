@@ -125,8 +125,10 @@ namespace BrutalTester.Sim
 
         public bool IsAte(Dictionary<Player, HashSet<V>> playerToCaptured)
         {
-            foreach (var (p, captured) in playerToCaptured)
+            foreach (var kvp in playerToCaptured)
             {
+                var p = kvp.Key;
+                var captured = kvp.Value;
                 var (position, isMove) = GetPosition();
                 if (this != p && captured.Contains(position) && (isMove || captured.Contains(GetPrevPosition())))
                     return true;
