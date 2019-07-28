@@ -517,7 +517,7 @@ namespace Game.Fast
                     if (players[k].arriveTime != 0)
                         continue;
 
-                    if (players[i].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
+                    if (players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
                         if (k != i)
