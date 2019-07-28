@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Game.Protocol;
 using Game.Types;
 
@@ -8,7 +9,7 @@ namespace Game.Fast
     public class FastState
     {
         public Config config;
-        
+
         public bool isGameOver;
 
         public int curPlayer;
@@ -16,8 +17,8 @@ namespace Game.Fast
         public int time;
 
         public int territoryVersion;
-        public byte[,] territory;
-        public byte[,] lines;
+        public byte[] territory;
+        public byte[] lines;
 
         public int bonusCount;
         public FastBonus[] bonuses;
@@ -31,18 +32,54 @@ namespace Game.Fast
         public void Reset()
         {
             players = null;
-            config = null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ushort NextCoord(ushort prev, Direction dir)
+        {
+            switch (dir)
+            {
+                case Direction.Up:
+                    var result = prev - config.x_cells_count;
+                    if (result < 0)
+                        return ushort.MaxValue;
+                    return (ushort)result;
+
+                case Direction.Left:
+                    if (prev % config.x_cells_count == 0)
+                        return ushort.MaxValue;
+                    return (ushort)(prev - 1);
+
+                case Direction.Down:
+                    result = prev + config.x_cells_count;
+                    if (result >= config.x_cells_count * config.y_cells_count)
+                        return ushort.MaxValue;
+                    return (ushort)result;
+
+                case Direction.Right:
+                    if (prev % config.x_cells_count == config.x_cells_count - 1)
+                        return ushort.MaxValue;
+                    return (ushort)(prev + 1);
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
+            }
+        }
+
+        public ushort ToCoord(V v)
+        {
+            return (ushort)(v.X + v.Y * config.x_cells_count);
         }
 
         public void SetInput(Config config, RequestInput input)
         {
             if (players == null)
             {
-                this.config = config;  
+                this.config = config;
                 players = new FastPlayer[input.players.Count];
 
-                territory = new byte[config.x_cells_count, config.y_cells_count];
-                lines = new byte[config.y_cells_count, config.x_cells_count];
+                territory = new byte[config.x_cells_count * config.y_cells_count];
+                lines = new byte[config.y_cells_count * config.x_cells_count];
 
                 curPlayer = (1 + input.players.Count) * input.players.Count / 2
                             - input.players.Sum(x => int.TryParse(x.Key, out var id) ? id : 0)
@@ -57,11 +94,10 @@ namespace Game.Fast
 
             time = input.tick_num;
 
-            for (int x = 0; x < config.x_cells_count; x++)
-            for (int y = 0; y < config.y_cells_count; y++)
+            for (int c = 0; c < config.x_cells_count * config.y_cells_count; c++)
             {
-                territory[x, y] = 0xFF;
-                lines[x, y] = 0;
+                territory[c] = 0xFF;
+                lines[c] = 0;
             }
 
             for (var i = 0; i < players.Length; i++)
@@ -96,11 +132,11 @@ namespace Game.Fast
                         arriveTime++;
                     }
 
-                    players[i].arrivePos = v.ToCellCoords(config.width);
+                    players[i].arrivePos = ToCoord(v.ToCellCoords(config.width));
                     if (arriveTime == 0)
                         players[i].pos = players[i].arrivePos;
                     else
-                        players[i].pos = players[i].arrivePos - GetShift(playerData.direction ?? throw new InvalidOperationException(), 1);
+                        players[i].pos = NextCoord(players[i].arrivePos, (playerData.direction ?? throw new InvalidOperationException()) + 2);
 
                     players[i].status = PlayerStatus.Active;
                     players[i].dir = playerData.direction;
@@ -117,15 +153,15 @@ namespace Game.Fast
 
                     for (var k = 0; k < playerData.lines.Length; k++)
                     {
-                        var lv = playerData.lines[k].ToCellCoords(config.width);
+                        var lv = ToCoord(playerData.lines[k].ToCellCoords(config.width));
                         players[i].line[k] = lv;
-                        lines[lv.X, lv.Y] = (byte)(lines[lv.X, lv.Y] | (1 << i));
+                        lines[lv] = (byte)(lines[lv] | (1 << i));
                     }
 
                     for (var k = 0; k < playerData.territory.Length; k++)
                     {
-                        var lv = playerData.territory[k].ToCellCoords(config.width);
-                        territory[lv.X, lv.Y] = (byte)i;
+                        var lv = ToCoord(playerData.territory[k].ToCellCoords(config.width));
+                        territory[lv] = (byte)i;
                     }
                 }
             }
@@ -136,7 +172,7 @@ namespace Game.Fast
             bonusCount = 0;
             for (var i = 0; i < input.bonuses.Length; i++)
             {
-                bonuses[bonusCount++] = new FastBonus(input.bonuses[i], config);
+                bonuses[bonusCount++] = new FastBonus(this, input.bonuses[i], config);
             }
 
             V GetShift(Direction direction, int d) =>
@@ -162,7 +198,7 @@ namespace Game.Fast
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
-                
+
                 if (players[i].arriveTime == 0)
                     players[i].dir = commands[i];
             }
@@ -186,7 +222,7 @@ namespace Game.Fast
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].arriveTime == 0)
+                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
                     // Capture
                     capture.Capture(this, i, config);
@@ -195,7 +231,7 @@ namespace Game.Fast
                         for (int l = 0; l < players[i].lineCount; l++)
                         {
                             var lv = players[i].line[l];
-                            lines[lv.X, lv.Y] = (byte)(lines[lv.X, lv.Y] & ~(1 << i));
+                            lines[lv] = (byte)(lines[lv] & ~(1 << i));
                         }
 
                         players[i].lineCount = 0;
@@ -213,7 +249,7 @@ namespace Game.Fast
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].arriveTime == 0)
+                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
                     players[i].TickAction(config);
 
@@ -241,12 +277,13 @@ namespace Game.Fast
                             }
                             else if (bonuses[b].type == BonusType.Saw)
                             {
-                                var shift = V.vertAndHoriz[(int)players[i].dir.Value];
                                 var sawStatus = 0L;
                                 var v = players[i].arrivePos;
-                                while (v.X > 0 && v.Y > 0 && v.X < config.x_cells_count - 1 && v.Y < config.y_cells_count - 1)
+                                while (true)
                                 {
-                                    v += shift;
+                                    v = NextCoord(v, players[i].dir.Value);
+                                    if (v == ushort.MaxValue)
+                                        break;
                                     for (int k = 0; k < players.Length; k++)
                                     {
                                         if (k == i || players[k].status == PlayerStatus.Eliminated)
@@ -259,7 +296,7 @@ namespace Game.Fast
                                         }
                                     }
 
-                                    var owner = territory[v.X, v.Y];
+                                    var owner = territory[v];
                                     if (owner != 0xFF && owner != i)
                                     {
                                         if (players[owner].status != PlayerStatus.Eliminated)
@@ -276,59 +313,71 @@ namespace Game.Fast
                                         continue;
 
                                     players[i].tickScore += Env.SAW_SCORE;
-                                    if (shift.X == 0)
+                                    var vx = v % config.x_cells_count;
+                                    var vy = v / config.x_cells_count;
+                                    if (players[i].dir.Value == Direction.Up || players[i].dir.Value == Direction.Down)
                                     {
-                                        if (players[k].arrivePos.X < v.X)
+                                        if (players[k].arrivePos % config.x_cells_count < vx)
                                         {
-                                            for (int x = v.X; x < config.x_cells_count; x++)
+                                            int pos = 0;
                                             for (int y = 0; y < config.y_cells_count; y++)
                                             {
-                                                if (territory[x, y] == k)
+                                                pos += vx;
+                                                for (int x = vx; x < config.x_cells_count; x++, pos++)
                                                 {
-                                                    players[k].territory--;
-                                                    territory[x, y] = 0xFF;
-                                                    territoryVersion++;
+                                                    if (territory[pos] == k)
+                                                    {
+                                                        players[k].territory--;
+                                                        territory[pos] = 0xFF;
+                                                        territoryVersion++;
+                                                    }
                                                 }
                                             }
                                         }
                                         else
                                         {
-                                            for (int x = 0; x <= v.X; x++)
+                                            int pos = 0;
                                             for (int y = 0; y < config.y_cells_count; y++)
                                             {
-                                                if (territory[x, y] == k)
+                                                for (int x = 0; x <= vx; x++, pos++)
                                                 {
-                                                    players[k].territory--;
-                                                    territory[x, y] = 0xFF;
-                                                    territoryVersion++;
+                                                    if (territory[pos] == k)
+                                                    {
+                                                        players[k].territory--;
+                                                        territory[pos] = 0xFF;
+                                                        territoryVersion++;
+                                                    }
                                                 }
+                                                pos += config.x_cells_count - vx - 1;
                                             }
                                         }
                                     }
                                     else
                                     {
-                                        if (players[k].arrivePos.Y < v.Y)
+                                        if (players[k].arrivePos / config.x_cells_count < vy)
                                         {
-                                            for (int x = 0; x < config.x_cells_count; x++)
-                                            for (int y = v.Y; y < config.y_cells_count; y++)
+                                            int pos = vy * config.x_cells_count;
+                                            for (int y = vy; y < config.y_cells_count; y++)
+                                            for (int x = 0; x < config.x_cells_count; x++, pos++)
                                             {
-                                                if (territory[x, y] == k)
+                                                if (territory[pos] == k)
                                                 {
                                                     players[k].territory--;
-                                                    territory[x, y] = 0xFF;
+                                                    territory[pos] = 0xFF;
                                                     territoryVersion++;
                                                 }
                                             }
                                         }
                                         else
                                         {
-                                            for (int x = 0; x < config.x_cells_count; x++)
-                                            for (int y = 0; y <= v.Y; y++)
+                                            int pos = 0;
+                                            for (int y = 0; y <= vy; y++)
+                                            for (int x = 0; x < config.x_cells_count; x++, pos++)
                                             {
-                                                if (territory[x, y] == k)
+                                                if (territory[pos] == k)
                                                 {
                                                     players[k].territory--;
-                                                    territory[x, y] = 0xFF;
+                                                    territory[pos] = 0xFF;
                                                     territoryVersion++;
                                                 }
                                             }
@@ -385,7 +434,14 @@ namespace Game.Fast
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                players[i].RenewArriveTime();
+                if (players[i].dir != null)
+                {
+                    if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
+                    {
+                        players[i].arriveTime = players[i].shiftTime;
+                        players[i].arrivePos = NextCoord(players[i].arrivePos, players[i].dir.Value);
+                    }
+                }
 
                 if (players[i].arriveTime < minArriveTime)
                     minArriveTime = players[i].arriveTime;
@@ -450,13 +506,8 @@ namespace Game.Fast
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].arrivePos.X < 0
-                    || players[i].arrivePos.Y < 0
-                    || players[i].arrivePos.X >= config.x_cells_count
-                    || players[i].arrivePos.Y >= config.y_cells_count)
-                {
+                if (players[i].arrivePos == ushort.MaxValue)
                     players[i].status = PlayerStatus.Loser;
-                }
 
                 for (int k = 0; k < players.Length; k++)
                 {
@@ -466,7 +517,7 @@ namespace Game.Fast
                     if (players[k].arriveTime != 0)
                         continue;
 
-                    if ((lines[players[k].arrivePos.X, players[k].arrivePos.Y] & (1 << i)) != 0)
+                    if (players[i].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
                         if (k != i)
@@ -480,7 +531,7 @@ namespace Game.Fast
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].arriveTime == 0 && capture.territoryCaptureCount[i] == 0)
+                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.territoryCaptureCount[i] == 0)
                     players[i].UpdateLines(i, this);
             }
 

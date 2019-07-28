@@ -26,9 +26,13 @@ namespace UnitTests
             var config = clients[0].Config;
             state.SetInput(config, clients[0].Input);
 
+            var commands = new Direction[state.players.Length];
+            var undo = state.NextTurn(commands);
+            state.Undo(undo);
+            
             var stopwatch = Stopwatch.StartNew();
             long counter = 0;
-            var commands = new Direction[state.players.Length];
+            
             while (stopwatch.ElapsedMilliseconds < 400)
             {
                 counter++;
@@ -43,7 +47,7 @@ namespace UnitTests
                 //     }
                 // }
 
-                var undo = state.NextTurn(commands);
+                undo = state.NextTurn(commands);
                 state.Undo(undo);
             }
 

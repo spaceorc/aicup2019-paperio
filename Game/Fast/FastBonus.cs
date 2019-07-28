@@ -6,12 +6,12 @@ namespace Game.Fast
     public class FastBonus
     {
         public BonusType type;
-        public V pos;
+        public ushort pos;
 
-        public FastBonus(RequestInput.BonusData inputBonusData, Config config)
+        public FastBonus(FastState state, RequestInput.BonusData inputBonusData, Config config)
         {
             type = inputBonusData.type;
-            pos = inputBonusData.position.ToCellCoords(config.width);
+            pos = state.ToCoord(inputBonusData.position.ToCellCoords(config.width));
         }
     }
 }

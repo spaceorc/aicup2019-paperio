@@ -6,8 +6,8 @@ namespace Game.Fast
     public class UndoPlayerData
     {
         public PlayerStatus status;
-        public V pos;
-        public V arrivePos;
+        public ushort pos;
+        public ushort arrivePos;
         public Direction? dir;
         public int arriveTime;
         public int shiftTime;
@@ -18,11 +18,11 @@ namespace Game.Fast
         public int territory;
 
         public int lineCount;
-        public V[] line;
+        public ushort[] line;
 
         public UndoPlayerData(Config config)
         {
-            line = new V[config.x_cells_count * config.y_cells_count];
+            line = new ushort[config.x_cells_count * config.y_cells_count];
         }
 
         public void Before(FastState state, FastPlayer player)
@@ -67,12 +67,12 @@ namespace Game.Fast
                 {
                     player.line[i] = line[i];
                     var lv = line[i];
-                    state.lines[lv.X, lv.Y] = (byte)(state.lines[lv.X, lv.Y] | (1 << p));
+                    state.lines[lv] = (byte)(state.lines[lv] | (1 << p));
                 }
             }
             else if (lineCount == player.lineCount - 1)
             {
-                state.lines[player.arrivePos.X, player.arrivePos.Y] = (byte)(state.lines[player.arrivePos.X, player.arrivePos.Y] & ~(1 << p));
+                state.lines[player.arrivePos] = (byte)(state.lines[player.arrivePos] & ~(1 << p));
             }
 
             player.lineCount = lineCount;
