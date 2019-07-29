@@ -30,9 +30,15 @@ namespace BrutalTester
                         // WriteScript(10, Direction.Left);
                         // WriteScript(4, Direction.Up);
                         // WriteScript(20, Direction.Right, Direction.Down, Direction.Left, Direction.Up);
-                        WriteScript(2, Direction.Right, Direction.Down, Direction.Left, Direction.Up);
+                        //WriteScript(2, Direction.Right, Direction.Down, Direction.Left, Direction.Up);
                         //WriteScript(Direction.Right, Direction.Right, Direction.Down);
-                        WriteScript(10, Direction.Right);
+                        //WriteScript(10, Direction.Right);
+                        WriteScript(2, Direction.Up);
+                        WriteScript(16, Direction.Right);
+                        WriteScript(5, Direction.Down);
+                        WriteScript(16, Direction.Left);
+                        WriteScript(2, Direction.Up);
+                        WriteScript(20, Direction.Left, Direction.Up, Direction.Right, Direction.Down);
                     }
 
                     if (args[0] == "2")
@@ -44,10 +50,16 @@ namespace BrutalTester
                         // WriteScript(6, Direction.Left);
                         // WriteScript(20, Direction.Down, Direction.Left, Direction.Up, Direction.Right); 
                         
-                        WriteScript(6, Direction.Left);
+                        WriteScript(3, Direction.Up, Direction.Right, Direction.Down, Direction.Left);
+                        //WriteScript(Direction.Up);
+                        WriteScript(8, Direction.Left);
                         WriteScript(1, Direction.Down);
-                        WriteScript(7, Direction.Right);
-                        WriteScript(100, Direction.Right, Direction.Down, Direction.Left, Direction.Up);
+                        WriteScript(8, Direction.Right);
+                        WriteScript(1, Direction.Up);
+                        WriteScript(9, Direction.Left);
+                        WriteScript(Direction.Down, Direction.Right);
+
+                        WriteScript(100, Direction.Up, Direction.Right, Direction.Down, Direction.Left);
                     }
                     WriteFin();
 
