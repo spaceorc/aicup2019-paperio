@@ -26,7 +26,7 @@ namespace Game.Strategies
             try
             {
                 var output = ai.GetCommand(state, state.curPlayer, timeManager, new Random(seed));
-                output.Debug += $". Seed: {seed}. Elapsed: {timeManager.Elapsed}. ElapsedGlobal: {timeManager.ElapsedGlobal}";
+                output.Debug += $". Command: {output.Command}. Seed: {seed}. Elapsed: {timeManager.Elapsed}. ElapsedGlobal: {timeManager.ElapsedGlobal}";
                 return output;
             }
             catch (Exception e)

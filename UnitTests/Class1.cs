@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using BrutalTester.Sim;
 using Game.Fast;
@@ -8,6 +9,7 @@ using Game.Protocol;
 using Game.Strategies;
 using Game.Types;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace UnitTests
@@ -16,7 +18,7 @@ namespace UnitTests
     public class Class1
     {
         [Test]
-        public void METHOD2()
+        public void Debug()
         {
             Logger.enableFile = true;
             Logger.minLevel = Logger.Level.Debug;
@@ -45,6 +47,46 @@ namespace UnitTests
             var command = ai.GetCommand(state, 0, new TestingTimeManager(10000), new Random(8902443));
 
             Console.Out.WriteLine(command?.ToString() ?? "NULL");
+        }
+        
+        [Test]
+        public void Debug_visio()
+        {
+            Logger.enableFile = true;
+            Logger.minLevel = Logger.Level.Debug;
+            
+            var state = new FastState();
+
+            var config = new Config
+            {
+                x_cells_count = 31,
+                y_cells_count = 31,
+                speed = 5,
+                width = 30
+            };
+            config.Prepare();
+
+            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio"));
+
+            var visioInfo = (JArray)visio["visio_info"];
+            var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == "979");
+
+            var input = tick.ToObject<RequestInput>(JsonSerializer.Create(ConsoleProtocol.jsonSerializerSettings));
+
+            input.players["i"] = input.players["6"];
+            input.players["1"] = input.players["5"];
+            input.players.Remove("6"); 
+            input.players.Remove("5"); 
+
+            state.SetInput(config, input);
+
+            Console.Out.WriteLine(state.Print());
+
+            var ai = new RandomWalkAi();
+
+            var command = ai.GetCommand(state, 1, new TestingTimeManager(10000), new Random(1525199131));
+
+            Console.Out.WriteLine(command.ToJson());
         }
 
         private class TestingTimeManager : ITimeManager

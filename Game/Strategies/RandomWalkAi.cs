@@ -39,7 +39,7 @@ namespace Game.Strategies
                     next = cur;
 
                 if (next != empty)
-                    return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = "Goto nearest"};
+                    return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = $"Goto nearest {state.players[player].arrivePos}->{empty}"};
             }
 
             backup.Backup(state);
