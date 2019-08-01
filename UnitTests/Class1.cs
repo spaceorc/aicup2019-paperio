@@ -40,7 +40,7 @@ namespace UnitTests
 
             Console.Out.WriteLine(state.Print());
 
-            var ai = new SimpleAi();
+            var ai = new RandomWalkAi();
 
             var command = ai.GetCommand(state, 0, new TestingTimeManager(10000), new Random(8902443));
 

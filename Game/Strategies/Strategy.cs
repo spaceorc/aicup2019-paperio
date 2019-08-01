@@ -25,8 +25,9 @@ namespace Game.Strategies
             Logger.Debug($"seed: {seed}");
             try
             {
-                var direction = ai.GetCommand(state, state.curPlayer, timeManager, new Random(seed));
-                return new RequestOutput {Command = direction, Debug = $"seed: {seed}"};
+                var output = ai.GetCommand(state, state.curPlayer, timeManager, new Random(seed));
+                output.Debug += $". Seed: {seed}. Elapsed: {timeManager.Elapsed}. ElapsedGlobal: {timeManager.ElapsedGlobal}";
+                return output;
             }
             catch (Exception e)
             {
@@ -46,7 +47,7 @@ namespace Game.Strategies
                         }
                     }
                 }
-                return new RequestOutput {Command = direction, Debug = $"seed: {seed}", Error = e.ToString()};
+                return new RequestOutput {Command = direction, Debug = $"Failure. Seed: {seed}. Elapsed: {timeManager.Elapsed}. ElapsedGlobal: {timeManager.ElapsedGlobal}", Error = e.ToString()};
             }
         }
     }

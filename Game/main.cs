@@ -34,7 +34,7 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    strategy = new Strategy(readResult.Config, new SimpleAi());
+                    strategy = new Strategy(readResult.Config, new RandomWalkAi());
                     continue;
                 }
 

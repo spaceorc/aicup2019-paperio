@@ -21,8 +21,8 @@ namespace Game.Helpers
         public TimeManager(Config config)
         {
             this.config = config;
-            totalTime = Env.MAX_EXECUTION_TIME * 1000;
-            maxMillisPerRequest = 100;// Env.REQUEST_MAX_TIME * 1000;
+            totalTime = Env.MAX_EXECUTION_TIME * 800;
+            maxMillisPerRequest = Env.REQUEST_MAX_TIME * 800;
             totalTicks = Env.MAX_TICK_COUNT;
 
             beStupidMillisPerRequest = totalTime / (totalTicks / config.ticksPerRequest) / 2;
@@ -73,5 +73,6 @@ namespace Game.Helpers
         public bool BeSmart => millisPerRequest >= beSmartMillisPerRequest;
         public bool IsExpiredGlobal => timeElapsed > totalTime;
         public int Elapsed => (int)stopwatch.ElapsedMilliseconds + 3;
+        public int ElapsedGlobal => timeElapsed;
     }
 }
