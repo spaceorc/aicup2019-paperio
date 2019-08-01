@@ -34,20 +34,25 @@ namespace Game.Fast
                 slowLeft--;
             if (nitroLeft > 0)
                 nitroLeft--;
-            UpdateBonusEffect(config);
+            UpdateShiftTime(config);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdateBonusEffect(Config config)
+        public void UpdateShiftTime(Config config)
+        {
+            shiftTime = GetShiftTime(config, nitroLeft, slowLeft);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetShiftTime(Config config, int nitroLeft, int slowLeft)
         {
             if (slowLeft > 0 && nitroLeft > 0)
-                shiftTime = config.ticksPerRequest;
-            else if (slowLeft > 0)
-                shiftTime = config.slowTicksPerRequest;
-            else if (nitroLeft > 0)
-                shiftTime = config.nitroTicksPerRequest;
-            else
-                shiftTime = config.ticksPerRequest;
+                return config.ticksPerRequest;
+            if (slowLeft > 0)
+                return config.slowTicksPerRequest;
+            if (nitroLeft > 0)
+                return config.nitroTicksPerRequest;
+            return config.ticksPerRequest;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

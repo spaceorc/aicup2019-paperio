@@ -358,3 +358,7 @@ MigrationBackup/
 # End of https://www.gitignore.io/api/csharp,vscode
 
 .idea
+*.gz
+
+Game/result
+Game/scores.json

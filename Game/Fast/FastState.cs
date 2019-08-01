@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Game.Protocol;
@@ -15,6 +16,7 @@ namespace Game.Fast
         public int curPlayer;
 
         public int time;
+        public int playersLeft;
 
         public int territoryVersion;
         public byte[] territory;
@@ -40,8 +42,8 @@ namespace Game.Fast
             switch (dir)
             {
                 case Direction.Up:
-                    var result = prev - config.x_cells_count;
-                    if (result < 0)
+                    var result = prev + config.x_cells_count;
+                    if (result >= config.x_cells_count * config.y_cells_count)
                         return ushort.MaxValue;
                     return (ushort)result;
 
@@ -51,8 +53,8 @@ namespace Game.Fast
                     return (ushort)(prev - 1);
 
                 case Direction.Down:
-                    result = prev + config.x_cells_count;
-                    if (result >= config.x_cells_count * config.y_cells_count)
+                    result = prev - config.x_cells_count;
+                    if (result < 0)
                         return ushort.MaxValue;
                     return (ushort)result;
 
@@ -69,6 +71,60 @@ namespace Game.Fast
         public ushort ToCoord(V v)
         {
             return (ushort)(v.X + v.Y * config.x_cells_count);
+        }
+
+        public string Print()
+        {
+            const string tc = "ABCDEF";
+            using (var writer = new StringWriter())
+            {
+                for (int y = config.y_cells_count - 1; y >= 0; y--)
+                {
+                    for (int x = 0; x < config.x_cells_count; x++)
+                    {
+                        var c = (ushort)(y * config.x_cells_count + x);
+                        
+                        int player = -1;
+                        for (int p = 0; p < players.Length; p++)
+                        {
+                            if (players[p].status != PlayerStatus.Eliminated && (players[p].pos == c || players[p].arrivePos == c))
+                            {
+                                player = p;
+                                break;
+                            }
+                        }
+
+                        FastBonus bonus = null;
+                        for (int b = 0; b < bonusCount; b++)
+                        {
+                            if (bonuses[b].pos == c)
+                            {
+                                bonus = bonuses[b];
+                                break;
+                            }
+                                
+                        }
+                        if (bonus?.type == BonusType.N)
+                            writer.Write('N');
+                        else if (bonus?.type == BonusType.S)
+                            writer.Write('S');
+                        else if (bonus?.type == BonusType.Saw)
+                            writer.Write('W');
+                        else if (player != -1)
+                            writer.Write(player);
+                        else if (lines[c] != 0)
+                            writer.Write('x');
+                        else if (territory[c] == 0xFF)
+                            writer.Write('.');
+                        else 
+                            writer.Write(tc[territory[c]]);
+                        
+                    }
+                    writer.WriteLine();
+                }
+
+                return writer.ToString();
+            }
         }
 
         public void SetInput(Config config, RequestInput input)
@@ -93,6 +149,7 @@ namespace Game.Fast
             capture.Init(config, players.Length);
 
             time = input.tick_num;
+            playersLeft = input.players.Count;
 
             for (int c = 0; c < config.x_cells_count * config.y_cells_count; c++)
             {
@@ -136,7 +193,7 @@ namespace Game.Fast
                     if (arriveTime == 0)
                         players[i].pos = players[i].arrivePos;
                     else
-                        players[i].pos = NextCoord(players[i].arrivePos, (playerData.direction ?? throw new InvalidOperationException()) + 2);
+                        players[i].pos = NextCoord(players[i].arrivePos, (Direction)(((int)(playerData.direction ?? throw new InvalidOperationException()) + 2)%4));
 
                     players[i].status = PlayerStatus.Active;
                     players[i].dir = playerData.direction;
@@ -189,10 +246,14 @@ namespace Game.Fast
             undos.Return(undo);
         }
 
-        public UndoData NextTurn(Direction[] commands)
+        public UndoData NextTurn(Direction[] commands, bool withUndo)
         {
-            var undo = undos.Get();
-            undo.Before(this);
+            UndoData undo = null;
+            if (withUndo)
+            {
+                undo = undos.Get();
+                undo.Before(this);
+            }
 
             for (int i = 0; i < players.Length; i++)
             {
@@ -209,7 +270,9 @@ namespace Game.Fast
             if (time > Env.MAX_TICK_COUNT)
             {
                 isGameOver = true;
-                undo.After(this);
+                if (withUndo)
+                    undo.After(this);
+
                 return undo;
             }
 
@@ -261,23 +324,25 @@ namespace Game.Fast
                         {
                             if (bonuses[b].type == BonusType.N)
                             {
+                                var bonusTime = i == curPlayer ? 10 : 50;
                                 if (players[i].nitroLeft > 0)
-                                    players[i].nitroLeft += 30; // random 10..50
+                                    players[i].nitroLeft += bonusTime;
                                 else
-                                    players[i].nitroLeft = 30;
-                                players[i].UpdateBonusEffect(config);
+                                    players[i].nitroLeft = bonusTime;
+                                players[i].UpdateShiftTime(config);
                             }
                             else if (bonuses[b].type == BonusType.S)
                             {
+                                var bonusTime = i == curPlayer ? 50 : 10;
                                 if (players[i].slowLeft > 0)
-                                    players[i].slowLeft += 30; // random 10..50
+                                    players[i].slowLeft += bonusTime; // random 10..50
                                 else
-                                    players[i].slowLeft = 30;
-                                players[i].UpdateBonusEffect(config);
+                                    players[i].slowLeft = bonusTime;
+                                players[i].UpdateShiftTime(config);
                             }
                             else if (bonuses[b].type == BonusType.Saw)
                             {
-                                var sawStatus = 0L;
+                                var sawStatus = 0ul;
                                 var v = players[i].arrivePos;
                                 while (true)
                                 {
@@ -290,7 +355,7 @@ namespace Game.Fast
                                             continue;
                                         if (players[k].arrivePos == v || (players[k].pos == v && players[k].arriveTime > 0))
                                         {
-                                            sawStatus |= 0xFF << (k * 8);
+                                            sawStatus |= 0xFFul << (k * 8);
                                             players[k].status = PlayerStatus.Loser;
                                             players[i].tickScore += Env.SAW_KILL_SCORE;
                                         }
@@ -300,7 +365,7 @@ namespace Game.Fast
                                     if (owner != 0xFF && owner != i)
                                     {
                                         if (players[owner].status != PlayerStatus.Eliminated)
-                                            sawStatus |= 1 << (owner * 8);
+                                            sawStatus |= 1ul << (owner * 8);
                                     }
                                 }
 
@@ -348,6 +413,7 @@ namespace Game.Fast
                                                         territoryVersion++;
                                                     }
                                                 }
+
                                                 pos += config.x_cells_count - vx - 1;
                                             }
                                         }
@@ -396,14 +462,14 @@ namespace Game.Fast
                             bonusCount--;
                         }
                     }
-
-                    capture.ApplyTo(this);
                 }
             }
 
+            capture.ApplyTo(this);
+            
             MoveDone();
 
-            var playersLeft = 0;
+            playersLeft = 0;
             for (int i = 0; i < players.Length; i++)
             {
                 switch (players[i].status)
@@ -422,7 +488,8 @@ namespace Game.Fast
 
             isGameOver = playersLeft == 0;
 
-            undo.After(this);
+            if (withUndo)
+                undo.After(this);
             return undo;
         }
 
@@ -505,7 +572,7 @@ namespace Game.Fast
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
-                
+
                 if (players[i].status != PlayerStatus.Loser)
                 {
                     if (players[i].territory == 0)
@@ -515,18 +582,18 @@ namespace Game.Fast
                     else if (players[i].arriveTime == 0 && (lines[players[i].arrivePos] & (1 << i)) != 0)
                         players[i].status = PlayerStatus.Loser;
                 }
-                
+
                 for (int k = i + 1; k < players.Length; k++)
                 {
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;
-                    
+
                     if (players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
                         players[k].tickScore += Env.LINE_KILL_SCORE;
                     }
-                    
+
                     if (players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
                     {
                         players[k].status = PlayerStatus.Loser;
@@ -553,11 +620,11 @@ namespace Game.Fast
                 {
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;
-                    
-                    if ((players[i].status == PlayerStatus.Loser || players[i].lineCount < players[k].lineCount) 
+
+                    if ((players[i].status == PlayerStatus.Loser || players[i].lineCount < players[k].lineCount)
                         && (players[k].status == PlayerStatus.Loser || players[k].lineCount < players[i].lineCount))
                         continue;
-                    
+
                     var collides = false;
                     if (players[i].arrivePos == players[k].arrivePos)
                         collides = true;
@@ -589,13 +656,36 @@ namespace Game.Fast
 
                     if (collides)
                     {
-                        if (players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
+                        if (players[i].lineCount > 0 && players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
                             players[i].status = PlayerStatus.Loser;
-                        if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
+                        if (players[k].lineCount > 0 && players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
                             players[k].status = PlayerStatus.Loser;
                     }
                 }
             }
+        }
+
+        public Direction MakeDir(ushort prev, ushort next)
+        {
+            var diff = next - prev;
+            if (diff == 1)
+                return Direction.Right;
+            if (diff == -1)
+                return Direction.Left;
+            if (diff == config.x_cells_count)
+                return Direction.Up;
+            if (diff == -config.x_cells_count)
+                return Direction.Down;
+            throw new InvalidOperationException($"Bad cell diff: {diff}");
+        }
+
+        public int MDist(ushort a, ushort b)
+        {
+            var ax = a % config.x_cells_count;
+            var ay = a / config.x_cells_count;
+            var bx = b % config.x_cells_count;
+            var by = b / config.x_cells_count;
+            return Math.Abs(ax - bx) + Math.Abs(ay - by);
         }
     }
 }

@@ -108,7 +108,8 @@ namespace BrutalTester.Sim
                 if (player.Pos.InCellCenter(Env.WIDTH))
                 {
                     var direction = SendTick(player);
-                    player.ChangeDirection(direction);
+                    if (direction != null)
+                        player.ChangeDirection(direction.Value);
                 }
             }
 
@@ -131,7 +132,7 @@ namespace BrutalTester.Sim
                     }
                 }
             }
-            
+
             foreach (var player in Players)
             {
                 if (CheckLoss(player))
@@ -139,7 +140,7 @@ namespace BrutalTester.Sim
             }
 
             playerToCaptured = CollisionResolution(playerToCaptured);
-            
+
             foreach (var player in Players)
             {
                 if (player.IsAte(playerToCaptured))
@@ -152,7 +153,7 @@ namespace BrutalTester.Sim
                 {
                     if (!playerToCaptured.TryGetValue(player, out var captured))
                         captured = new HashSet<V>();
-                
+
                     player.TickAction();
 
                     foreach (var bonus in Bonuses.ToList())
@@ -203,7 +204,7 @@ namespace BrutalTester.Sim
 
             foreach (var loser in Losers)
                 Players.Remove(loser);
-            
+
             foreach (var player in Players)
             {
                 player.Score += player.TickScore;
@@ -216,7 +217,7 @@ namespace BrutalTester.Sim
             return Players.Count == 0;
         }
 
-        private Dictionary<Player, HashSet<V>> CollisionResolution(Dictionary<Player,HashSet<V>> playerToCaptured)
+        private Dictionary<Player, HashSet<V>> CollisionResolution(Dictionary<Player, HashSet<V>> playerToCaptured)
         {
             var p_to_c = playerToCaptured.Where(x => !x.Key.IsAte(playerToCaptured)).ToDictionary(x => x.Key, x => x.Value);
             var res = p_to_c.ToDictionary(x => x.Key, x => x.Value);
@@ -226,10 +227,11 @@ namespace BrutalTester.Sim
                 if (kvp1.Key != kvp2.Key)
                     res[kvp1.Key].ExceptWith(kvp2.Value);
             }
+
             return res;
         }
 
-        private Direction SendTick(Player player)
+        private Direction? SendTick(Player player)
         {
             return player.Client.SendRequestInput(
                     new RequestInput
@@ -324,12 +326,18 @@ namespace BrutalTester.Sim
                 }
             }
 
-            foreach (var p in Players)
+            if (player.Lines.Count > 0)
             {
-                if (p != player && p.Pos.IntersectsWith(player.Pos, Env.WIDTH))
+                foreach (var p in Players)
                 {
-                    if (player.Lines.Count >= p.Lines.Count)
-                        isLoss = true;
+                    if (p != player && p.Pos.IntersectsWith(player.Pos, Env.WIDTH))
+                    {
+                        if (player.Lines.Count >= p.Lines.Count)
+                        {
+                            isLoss = true;
+                            break;
+                        }
+                    }
                 }
             }
 

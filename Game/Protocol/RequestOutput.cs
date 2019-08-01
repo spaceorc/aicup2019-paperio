@@ -6,6 +6,6 @@ namespace Game.Protocol
     {
         public string Debug { get; set; }
         public string Error { get; set; }
-        public Direction Command { get; set; }
+        public Direction? Command { get; set; }
     }
 }

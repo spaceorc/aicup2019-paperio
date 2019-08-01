@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
@@ -33,7 +34,7 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    strategy = new Strategy(readResult.Config);
+                    strategy = new Strategy(readResult.Config, new SimpleAi());
                     continue;
                 }
 
@@ -51,6 +52,7 @@ namespace Game
                     var command = strategy.OnTick(readResult.Input, timeManager);
                     timeManager.RequestFinished();
 
+                    Logger.Info($"Output: {command.ToJson()}");
                     ConsoleProtocol.Write(command);
                     continue;
                 }

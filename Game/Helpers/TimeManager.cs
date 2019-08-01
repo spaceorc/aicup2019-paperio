@@ -3,7 +3,7 @@ using Game.Protocol;
 
 namespace Game.Helpers
 {
-    public class TimeManager
+    public class TimeManager : ITimeManager
     {
         private readonly Config config;
         private readonly Stopwatch stopwatch = new Stopwatch();
@@ -22,7 +22,7 @@ namespace Game.Helpers
         {
             this.config = config;
             totalTime = Env.MAX_EXECUTION_TIME * 1000;
-            maxMillisPerRequest = Env.REQUEST_MAX_TIME * 1000;
+            maxMillisPerRequest = 100;// Env.REQUEST_MAX_TIME * 1000;
             totalTicks = Env.MAX_TICK_COUNT;
 
             beStupidMillisPerRequest = totalTime / (totalTicks / config.ticksPerRequest) / 2;

@@ -105,18 +105,22 @@ namespace Game.Fast
         {
             for (int player = 0; player < territoryCaptureCount.Length; player++)
             {
-                for (int i = 0; i < territoryCaptureCount[i]; i++)
+                if (state.players[player].status == PlayerStatus.Eliminated)
+                    continue;
+                
+                for (int i = 0; i < territoryCaptureCount[player]; i++)
                 {
                     var v = territoryCapture[player, i];
                     var mask = territoryCaptureMask[v] & 0xFF;
                     if ((mask & ~(1 << player)) == 0)
                     {
-                        if (state.territory[v] != player)
+                        var owner = state.territory[v];
+                        if (owner != player)
                         {
-                            if (state.territory[v] != 0xFF)
+                            if (owner != 0xFF && state.players[owner].status != PlayerStatus.Eliminated)
                             {
                                 state.players[player].tickScore += Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE;
-                                state.players[state.territory[v]].territory--;
+                                state.players[owner].territory--;
                             }
 
                             state.players[player].territory++;
@@ -191,7 +195,7 @@ namespace Game.Fast
 
             for (ushort c = 0; c < config.x_cells_count * config.y_cells_count; c++)
             {
-                if (used[c] != queueGen)
+                if (used[c] != queueGen && state.territory[c] != player)
                     Add(c, player);
             }
         }

@@ -36,7 +36,7 @@ namespace Game.Helpers
 			if (enableFile)
 			{
 				if (logFile == null)
-					logFile = Path.Combine(FileHelper.PatchDirectoryName("logs"), $"log{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt");
+					logFile = Path.Combine(FileHelper.PatchDirectoryName("logs"), $"log{DateTime.Now:yyyy-MM-dd_HH-mm-ss}-{Guid.NewGuid().GetHashCode()}.txt");
 				using (var fileStream = File.Open(logFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite))
 				using (var w = new StreamWriter(fileStream))
 					w.WriteLine($"{DateTime.Now:s} {level.ToString().ToUpper()} {msg}");
