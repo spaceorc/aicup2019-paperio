@@ -118,6 +118,7 @@ namespace Game.Strategies
             var tail = 0;
 
             var start = state.players[player].arrivePos;
+            var startDir = state.players[player].dir;
 
             if (state.players[player].arriveTime != 0 && times[player, start] == -1)
                 return;
@@ -146,6 +147,12 @@ namespace Game.Strategies
 
                 for (int dir = 0; dir < 4; dir++)
                 {
+                    if (cur == start && startDir != null)
+                    {
+                        if (dir == ((int)startDir.Value + 2) % 4)
+                            continue;
+                    }
+
                     var next = state.NextCoord(cur, (Direction)dir);
                     if (next != ushort.MaxValue)
                     {
