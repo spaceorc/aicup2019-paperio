@@ -115,49 +115,45 @@ namespace Game.Strategies
                     backup.Restore(state);
                 }
                 else
+                    invalidPathCounter++;
+            }
+
+            if (bestDir == null)
+            {
+                paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
+                if (paths[player].len > 0)
+                    return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. Simulations: {simulations}"};
+
+                Direction? validDir = null;
+                if (state.players[player].dir == null)
                 {
-                    if (bestDir == null)
+                    for (int d = 0; d < 4; d++)
                     {
-                        invalidPathCounter++;
-                        if (invalidPathCounter == 100)
+                        var next = state.NextCoord(state.players[player].arrivePos, (Direction)d);
+                        if (next != ushort.MaxValue)
                         {
-                            paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
-                            if (paths[player].len > 0)
-                                return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. Simulations: {simulations}"};
-
-                            Direction? validDir = null;
-                            if (state.players[player].dir == null)
-                            {
-                                for (int d = 0; d < 4; d++)
-                                {
-                                    var next = state.NextCoord(state.players[player].arrivePos, (Direction)d);
-                                    if (next != ushort.MaxValue)
-                                    {
-                                        validDir = (Direction)d;
-                                        if (state.territory[next] == player)
-                                            return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. Simulations: {simulations}"};
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                for (int d = 3; d <= 5; d++)
-                                {
-                                    var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
-                                    var next = state.NextCoord(state.players[player].arrivePos, nd);
-                                    if (next != ushort.MaxValue)
-                                    {
-                                        validDir = nd;
-                                        if (state.territory[next] == player)
-                                            return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. Simulations: {simulations}"};
-                                    }
-                                }
-                            }
-
-                            return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. Simulations: {simulations}"};
+                            validDir = (Direction)d;
+                            if (state.territory[next] == player)
+                                return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. Simulations: {simulations}"};
                         }
                     }
                 }
+                else
+                {
+                    for (int d = 3; d <= 5; d++)
+                    {
+                        var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
+                        var next = state.NextCoord(state.players[player].arrivePos, nd);
+                        if (next != ushort.MaxValue)
+                        {
+                            validDir = nd;
+                            if (state.territory[next] == player)
+                                return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. Simulations: {simulations}"};
+                        }
+                    }
+                }
+
+                return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. Simulations: {simulations}"};
             }
 
             return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("Couldn't best path"), Debug = $"Paths: {pathCounter}. Simulations: {simulations}"};
