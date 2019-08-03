@@ -82,7 +82,7 @@ namespace Game.Strategies
                                 commands[i] = paths[i].dirs[paths[i].len-- - 1];
                             else if (state.players[i].dir != null)
                             {
-                                for (int d = 1; d <= 3; d++)
+                                for (int d = 3; d <= 5; d++)
                                 {
                                     var nd = (Direction)(((int)state.players[i].dir.Value + d) % 4);
                                     var next = state.NextCoord(state.players[i].arrivePos, nd);
@@ -141,7 +141,7 @@ namespace Game.Strategies
                             }
                             else
                             {
-                                for (int d = 1; d <= 3; d++)
+                                for (int d = 3; d <= 5; d++)
                                 {
                                     var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
                                     var next = state.NextCoord(state.players[player].arrivePos, nd);

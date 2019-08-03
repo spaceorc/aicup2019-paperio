@@ -35,7 +35,7 @@ namespace Game.Strategies
                 var curDir = state.players[state.curPlayer].dir;
                 if (curDir != null)
                 {
-                    for (int d = 1; d <= 3; d++)
+                    for (int d = 3; d <= 5; d++)
                     {
                         var nd = (Direction)(((int)curDir.Value + d) % 4);
                         var next = state.NextCoord(state.players[state.curPlayer].arrivePos, nd);
