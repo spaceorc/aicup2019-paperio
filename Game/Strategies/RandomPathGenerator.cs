@@ -136,7 +136,7 @@ namespace Game.Strategies
                         if (state.players[other].status == PlayerStatus.Eliminated)
                             continue;
                         var otherTimeToPos = distanceMap.times[other, nextPos];
-                        if (otherTimeToPos != -1/* && otherTimeToPos != int.MaxValue*/)
+                        if (otherTimeToPos != -1 && otherTimeToPos != int.MaxValue)
                         {
                             if (otherTimeToPos < nextTimeLimit)
                                 nextTimeLimit = otherTimeToPos;
