@@ -46,7 +46,7 @@ namespace Game.Strategies
             var invalidPathCounter = 0;
             var pathCounter = 0;
             Direction? bestDir = null;
-            int bestScore = 0;
+            int bestScore = int.MinValue;
             int bestLen = 0;
             long simulations = 0;
             while (!timeManager.IsExpired)
