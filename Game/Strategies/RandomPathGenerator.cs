@@ -135,8 +135,20 @@ namespace Game.Strategies
                             continue;
                         if (state.players[other].status == PlayerStatus.Eliminated)
                             continue;
-                        if (distanceMap.times[other, nextPos] != -1 && distanceMap.times[other, nextPos] < nextTimeLimit)
-                            nextTimeLimit = distanceMap.times[other, nextPos];
+                        var otherTimeToPos = distanceMap.times[other, nextPos];
+                        if (otherTimeToPos != -1/* && otherTimeToPos != int.MaxValue*/)
+                        {
+                            if (otherTimeToPos < nextTimeLimit)
+                                nextTimeLimit = otherTimeToPos;
+                            else
+                            {
+                                var prevOtherPos = distanceMap.paths[other, nextPos];
+                                var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                                var otherEnterTime = otherTimeToPos - prevShiftTime;
+                                if (otherEnterTime <= nextTime)
+                                    nextTimeLimit = -1;
+                            }
+                        }
                     }
                     if (nextTime > nextTimeLimit || nextTime == nextTimeLimit && state.territory[nextPos] != player)
                         continue;
