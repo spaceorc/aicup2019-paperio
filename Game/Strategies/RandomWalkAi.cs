@@ -8,11 +8,17 @@ namespace Game.Strategies
 {
     public class RandomWalkAi : IAi
     {
+        private readonly IEstimator estimator;
         private readonly RandomPathGenerator randomPath = new RandomPathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly FastStateBackup backup = new FastStateBackup();
         private PathBuilder[] paths;
         private Direction[] commands;
+
+        public RandomWalkAi(IEstimator estimator)
+        {
+            this.estimator = estimator;
+        }
 
         public RequestOutput GetCommand(FastState state, int player, ITimeManager timeManager, Random random)
         {
@@ -43,10 +49,10 @@ namespace Game.Strategies
             }
 
             backup.Backup(state);
-            var invalidPathCounter = 0;
+            estimator.Before(state, player);
             var pathCounter = 0;
             Direction? bestDir = null;
-            int bestScore = 0;
+            double bestScore = 0;
             int bestLen = 0;
             long simulations = 0;
             while (!timeManager.IsExpired)
@@ -100,8 +106,8 @@ namespace Game.Strategies
                         simulations++;
                         if (state.isGameOver || state.players[player].status == PlayerStatus.Eliminated || paths[player].len == 0 && state.players[player].arriveTime == 0)
                         {
-                            var score = Evaluate(state, player);
-                            if (score > bestScore || score == bestScore && randomPath.len < bestLen)
+                            var score = estimator.Estimate(state, player);
+                            if (score > bestScore || score > bestScore - 1e-6 && randomPath.len < bestLen)
                             {
                                 bestScore = score;
                                 bestDir = dir;
@@ -114,8 +120,6 @@ namespace Game.Strategies
 
                     backup.Restore(state);
                 }
-                else
-                    invalidPathCounter++;
             }
 
             if (bestDir == null)
@@ -157,18 +161,6 @@ namespace Game.Strategies
             }
 
             return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("Couldn't best path"), Debug = $"Paths: {pathCounter}. Simulations: {simulations}"};
-        }
-
-        private int Evaluate(FastState state, int player)
-        {
-            var score = 0;
-            if (state.players[player].status == PlayerStatus.Eliminated)
-                score -= 1_000_000_000;
-            else
-                score += 10_000_000 - state.playersLeft * 1_000_000;
-
-            score += state.players[player].score;
-            return score;
         }
     }
 }

@@ -34,7 +34,11 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    strategy = new Strategy(readResult.Config, new RandomWalkAi());
+
+                    var estimator = args.ElementAtOrDefault(0) == "score"
+                        ? new BestScoreEstimator()
+                        : (IEstimator)new BestScoreSpeedEstimator();
+                    strategy = new Strategy(readResult.Config, new RandomWalkAi(estimator));
                     continue;
                 }
 
@@ -56,7 +60,7 @@ namespace Game
                     ConsoleProtocol.Write(command);
                     continue;
                 }
-                
+
                 Logger.Debug($"Unexpected type: {readResult.Type}");
             }
         }
