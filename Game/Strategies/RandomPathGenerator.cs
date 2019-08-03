@@ -128,6 +128,25 @@ namespace Game.Strategies
                     if (nextTime > timeLimit || nextTime == timeLimit && state.territory[nextPos] != player)
                         continue;
 
+                    var nextNitroLeft = nitroLeft; 
+                    var nextSlowLeft = slowLeft; 
+                    if (nextNitroLeft > 0)
+                        nextNitroLeft--;
+                    if (nextSlowLeft > 0)
+                        nextSlowLeft--;
+                    for (int b = 0; b < state.bonusCount; b++)
+                    {
+                        if (state.bonuses[b].pos == nextPos)
+                        {
+                            if (state.bonuses[b].type == BonusType.S)
+                                nextSlowLeft += 50;
+                            else if (state.bonuses[b].type == BonusType.N)
+                                nextNitroLeft += 10;
+                        }
+                    }
+                    var nextShiftTime = FastPlayer.GetShiftTime(state.config, nextNitroLeft, nextSlowLeft);
+                    var escapeTime = nextTime + nextShiftTime;
+
                     var nextTimeLimit = timeLimit;
                     for (int other = 0; other < state.players.Length; other++)
                     {
@@ -140,13 +159,21 @@ namespace Game.Strategies
                         {
                             if (otherTimeToPos < nextTimeLimit)
                                 nextTimeLimit = otherTimeToPos;
-                            else
+                            
+                            if (otherTimeToPos == 0)
                             {
-                                var prevOtherPos = distanceMap.paths[other, nextPos];
-                                var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
-                                var otherEnterTime = otherTimeToPos - prevShiftTime;
-                                if (otherEnterTime <= nextTime)
-                                    nextTimeLimit = -1;
+                                nextTimeLimit = -1;
+                                break;
+                            }
+                            
+                            var prevOtherPos = distanceMap.paths[other, nextPos];
+                            var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                            var otherEnterTime = otherTimeToPos - prevShiftTime;
+
+                            if (otherEnterTime < escapeTime)
+                            {
+                                nextTimeLimit = -1;
+                                break;
                             }
                         }
                     }
@@ -162,22 +189,9 @@ namespace Game.Strategies
                     pos = nextPos;
                     time = nextTime;
                     timeLimit = nextTimeLimit;
-                    if (nitroLeft > 0)
-                        nitroLeft--;
-                    if (slowLeft > 0)
-                        slowLeft--;
-                    for (int b = 0; b < state.bonusCount; b++)
-                    {
-                        if (state.bonuses[b].pos == pos)
-                        {
-                            if (state.bonuses[b].type == BonusType.S)
-                                slowLeft += 50;
-                            else if (state.bonuses[b].type == BonusType.N)
-                                nitroLeft += 10;
-                        }
-                    }
-
-                    shiftTime = FastPlayer.GetShiftTime(state.config, nitroLeft, slowLeft);
+                    nitroLeft = nextNitroLeft;
+                    slowLeft = nextSlowLeft;
+                    shiftTime = nextShiftTime;
                     break;
                 }
 

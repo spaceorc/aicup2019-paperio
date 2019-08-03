@@ -31,6 +31,9 @@ namespace Game.Strategies
             }
             catch (Exception e)
             {
+                #if LOCAL_RUNNER
+                throw;
+                #endif
                 var direction = default(Direction);
                 var curDir = state.players[state.curPlayer].dir;
                 if (curDir != null)
