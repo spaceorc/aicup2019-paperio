@@ -160,7 +160,7 @@ namespace Game.Strategies
                             if (otherTimeToPos < nextTimeLimit)
                                 nextTimeLimit = otherTimeToPos;
                             
-                            if (otherTimeToPos == 0)
+                            if (state.players[other].arrivePos == nextPos)
                             {
                                 nextTimeLimit = -1;
                                 break;
