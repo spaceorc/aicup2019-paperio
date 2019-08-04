@@ -14,6 +14,7 @@ namespace Game.Strategies
         public ushort[] queue;
         public ushort[] nearestEmpty;
         public ushort[] nearestOwned;
+        public ushort[] nearestOpponent;
 
         public void Build(FastState state)
         {
@@ -26,6 +27,7 @@ namespace Game.Strategies
                 queue = new ushort[state.config.x_cells_count * state.config.y_cells_count];
                 nearestEmpty = new ushort[state.players.Length];
                 nearestOwned = new ushort[state.players.Length];
+                nearestOpponent = new ushort[state.players.Length];
             }
 
             for (int i = 0; i < state.players.Length; i++)
@@ -106,6 +108,7 @@ namespace Game.Strategies
         private void Build(FastState state, int player)
         {
             nearestEmpty[player] = ushort.MaxValue;
+            nearestOpponent[player] = ushort.MaxValue;
             nearestOwned[player] = ushort.MaxValue;
             for (int c = 0; c < times.GetLength(1); c++)
             {
@@ -142,6 +145,8 @@ namespace Game.Strategies
 
                 if (nearestEmpty[player] == ushort.MaxValue && state.territory[cur] != player)
                     nearestEmpty[player] = cur;
+                if (nearestOpponent[player] == ushort.MaxValue && state.territory[cur] != 0xFF && state.territory[cur] != player)
+                    nearestOpponent[player] = cur;
                 if (nearestOwned[player] == ushort.MaxValue && state.territory[cur] == player)
                     nearestOwned[player] = cur;
 
