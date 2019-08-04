@@ -66,6 +66,8 @@ namespace Game.Strategies
                         {
                             if (state.players[i].status != PlayerStatus.Eliminated)
                                 paths[i].BuildPath(state, distanceMap, i, distanceMap.nearestOwned[i]);
+                            else
+                                paths[i].Clear();
                         }
                     }
 
@@ -79,7 +81,9 @@ namespace Game.Strategies
                                 continue;
 
                             if (paths[i].len > 0)
+                            {
                                 commands[i] = paths[i].dirs[paths[i].len-- - 1];
+                            }
                             else if (state.players[i].dir != null)
                             {
                                 for (int d = 3; d <= 5; d++)
@@ -106,6 +110,14 @@ namespace Game.Strategies
                                 bestScore = score;
                                 bestDir = dir;
                                 bestLen = randomPath.len;
+                                Logger.Debug($"Score: {bestScore}; Path: {randomPath.Print(state, player)}");
+                                if (Logger.IsEnabled(Logger.Level.Debug))
+                                {
+                                    for (int i = 0; i < paths.Length; i++)
+                                    {
+                                        Logger.Debug($"{i}: {paths[i].Print()} {state.players[i].status}");
+                                    }
+                                }
                             }
 
                             break;
@@ -165,7 +177,13 @@ namespace Game.Strategies
             if (state.players[player].status == PlayerStatus.Eliminated)
                 score -= 1_000_000_000;
             else
-                score += 10_000_000 - state.playersLeft * 1_000_000;
+            {
+                for (int i = 0; i < state.players.Length; i++)
+                {
+                    if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
+                        score += 1_000_000;
+                }
+            }
 
             score += state.players[player].score;
             return score;
