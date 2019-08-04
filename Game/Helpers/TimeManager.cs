@@ -21,8 +21,8 @@ namespace Game.Helpers
         public TimeManager(Config config)
         {
             this.config = config;
-            totalTime = Env.MAX_EXECUTION_TIME * 800;
-            maxMillisPerRequest = Env.REQUEST_MAX_TIME * 800;
+            totalTime = Env.MAX_EXECUTION_TIME * 950;
+            maxMillisPerRequest = Env.REQUEST_MAX_TIME * 950;
             totalTicks = Env.MAX_TICK_COUNT;
 
             beStupidMillisPerRequest = totalTime / (totalTicks / config.ticksPerRequest) / 2;
