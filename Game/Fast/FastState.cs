@@ -601,12 +601,14 @@ namespace Game.Fast
                     if (players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
+                        players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
                         players[k].tickScore += Env.LINE_KILL_SCORE;
                     }
 
                     if (players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
                     {
                         players[k].status = PlayerStatus.Loser;
+                        players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
                         players[i].tickScore += Env.LINE_KILL_SCORE;
                     }
                 }
@@ -667,9 +669,16 @@ namespace Game.Fast
                     if (collides)
                     {
                         if (players[i].lineCount > 0 && players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
+                        {
                             players[i].status = PlayerStatus.Loser;
+                            players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
+                        }
+
                         if (players[k].lineCount > 0 && players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
+                        {
                             players[k].status = PlayerStatus.Loser;
+                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
+                        }
                     }
                 }
             }
