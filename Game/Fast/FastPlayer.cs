@@ -12,6 +12,7 @@ namespace Game.Fast
         public Direction? dir;
         public int arriveTime;
         public int shiftTime;
+        public byte killedBy;
 
         public int score;
         public int tickScore;

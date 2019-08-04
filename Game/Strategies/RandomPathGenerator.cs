@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
@@ -9,7 +10,7 @@ namespace Game.Strategies
     public class RandomPathGenerator
     {
         private const int sameDirChance = 10;
-        
+
         public Random random;
 
         public ushort[] coords;
@@ -17,7 +18,7 @@ namespace Game.Strategies
         public int[] used;
         public int len;
         public int gen;
-        
+
         public Direction[] dirs;
         public int[] dirChances;
         public int dirsCount;
@@ -35,7 +36,7 @@ namespace Game.Strategies
 
             gen++;
             len = 0;
-            var timeLimit = Env.MAX_TICK_COUNT - state.time; 
+            var timeLimit = Env.MAX_TICK_COUNT - state.time;
             for (int i = 0; i < state.players[player].lineCount; i++)
             {
                 var line = state.players[player].line[i];
@@ -128,8 +129,8 @@ namespace Game.Strategies
                     if (nextTime > timeLimit || nextTime == timeLimit && state.territory[nextPos] != player)
                         continue;
 
-                    var nextNitroLeft = nitroLeft; 
-                    var nextSlowLeft = slowLeft; 
+                    var nextNitroLeft = nitroLeft;
+                    var nextSlowLeft = slowLeft;
                     if (nextNitroLeft > 0)
                         nextNitroLeft--;
                     if (nextSlowLeft > 0)
@@ -144,6 +145,7 @@ namespace Game.Strategies
                                 nextNitroLeft += 10;
                         }
                     }
+
                     var nextShiftTime = FastPlayer.GetShiftTime(state.config, nextNitroLeft, nextSlowLeft);
                     var escapeTime = nextTime + nextShiftTime;
 
@@ -159,13 +161,13 @@ namespace Game.Strategies
                         {
                             if (otherTimeToPos < nextTimeLimit)
                                 nextTimeLimit = otherTimeToPos;
-                            
+
                             if (state.players[other].arrivePos == nextPos)
                             {
                                 nextTimeLimit = -1;
                                 break;
                             }
-                            
+
                             var prevOtherPos = distanceMap.paths[other, nextPos];
                             var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
                             var otherEnterTime = otherTimeToPos - prevShiftTime;
@@ -177,6 +179,7 @@ namespace Game.Strategies
                             }
                         }
                     }
+
                     if (nextTime > nextTimeLimit || nextTime == nextTimeLimit && state.territory[nextPos] != player)
                         continue;
 
@@ -201,6 +204,22 @@ namespace Game.Strategies
                 if (state.territory[pos] == player)
                     return true;
             }
+        }
+
+        public string Print(FastState state, int player)
+        {
+            if (len == 0)
+                return "<EMPTY>";
+
+            var result = new StringBuilder();
+            result.Append(state.ToV(coords[0]));
+            for (int i = 1; i < len; i++)
+            {
+                result.Append("->");
+                result.Append(state.ToV(coords[i]));
+            }
+
+            return result.ToString();
         }
     }
 }

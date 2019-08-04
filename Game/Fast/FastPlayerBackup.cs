@@ -11,6 +11,7 @@ namespace Game.Fast
         public Direction? dir;
         public int arriveTime;
         public int shiftTime;
+        public byte killedBy;
 
         public int score;
         public int tickScore;
@@ -29,6 +30,7 @@ namespace Game.Fast
 
             pos = player.pos;
             arrivePos = player.arrivePos;
+            killedBy = player.killedBy;
             dir = player.dir;
             arriveTime = player.arriveTime;
             shiftTime = player.shiftTime;
@@ -53,6 +55,7 @@ namespace Game.Fast
             player.status = status;
             player.pos = pos;
             player.arrivePos = arrivePos;
+            player.killedBy = killedBy;
             player.dir = dir;
             player.arriveTime = arriveTime;
             player.shiftTime = shiftTime;

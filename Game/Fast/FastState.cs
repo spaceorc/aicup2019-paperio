@@ -72,6 +72,11 @@ namespace Game.Fast
         {
             return (ushort)(v.X + v.Y * config.x_cells_count);
         }
+        
+        public V ToV(ushort c)
+        {
+            return V.Get(c % config.x_cells_count, c / config.x_cells_count);
+        }
 
         public string Print()
         {
@@ -357,6 +362,7 @@ namespace Game.Fast
                                         {
                                             sawStatus |= 0xFFul << (k * 8);
                                             players[k].status = PlayerStatus.Loser;
+                                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
                                             players[i].tickScore += Env.SAW_KILL_SCORE;
                                         }
                                     }
@@ -549,17 +555,21 @@ namespace Game.Fast
                 if (players[i].status != PlayerStatus.Active)
                     continue;
 
-                var prevPosIsEaten = capture.IsEaten(players[i].pos, i);
-                if (prevPosIsEaten)
+                var prevPosEatenBy = capture.EatenBy(players[i].pos, i);
+                if (prevPosEatenBy != -1)
                 {
                     if (players[i].arriveTime != 0)
+                    {
                         players[i].status = PlayerStatus.Loser;
+                        players[i].killedBy = (byte)(players[i].killedBy | (1 << prevPosEatenBy));
+                    }
                     else
                     {
-                        var isEaten = capture.IsEaten(players[i].arrivePos, i);
-                        if (isEaten)
+                        var eatenBy = capture.EatenBy(players[i].arrivePos, i);
+                        if (eatenBy == prevPosEatenBy)
                         {
                             players[i].status = PlayerStatus.Loser;
+                            players[i].killedBy = (byte)(players[i].killedBy | (1 << eatenBy));
                         }
                     }
                 }
