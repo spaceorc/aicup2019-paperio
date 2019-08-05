@@ -50,13 +50,45 @@ namespace Game.Strategies
                     if (distanceMap.times[other, line] != -1 && distanceMap.times[other, line] < timeLimit)
                         timeLimit = distanceMap.times[other, line];
 
-                    if (distanceMap.nearestOwned[other] != ushort.MaxValue)
+                    var nearestOwned = distanceMap.nearestOwned[other];
+                    if (nearestOwned != ushort.MaxValue)
                     {
-                        var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
+                        var timeToOwn = distanceMap.times[other, nearestOwned];
                         if (timeToOwn != -1 && timeToOwn != int.MaxValue)
                         {
-                            // todo учесть бонусы врага 
-                            var timeToOur = timeToOwn + state.MDist(distanceMap.nearestOwned[other], line) * state.players[other].shiftTime;
+                            var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
+                            var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
+                            var mDist = state.MDist(nearestOwned, line);
+
+                            if (otherNitroLeft > mDist)
+                                otherNitroLeft = mDist;
+                            if (otherSlowLeft > mDist)
+                                otherSlowLeft = mDist;
+
+                            var timeToOur = timeToOwn;
+                            if (otherNitroLeft > otherSlowLeft)
+                            {
+                                mDist -= otherSlowLeft;
+                                otherNitroLeft -= otherSlowLeft;
+                                timeToOur += otherSlowLeft * state.config.ticksPerRequest;
+
+                                mDist -= otherNitroLeft;
+                                timeToOur += otherNitroLeft * state.config.nitroTicksPerRequest;
+
+                                timeToOur += mDist * state.config.ticksPerRequest;
+                            }
+                            else
+                            {
+                                mDist -= otherNitroLeft;
+                                otherSlowLeft -= otherNitroLeft;
+                                timeToOur += otherNitroLeft * state.config.ticksPerRequest;
+
+                                mDist -= otherSlowLeft;
+                                timeToOur += otherSlowLeft * state.config.slowTicksPerRequest;
+
+                                timeToOur += mDist * state.config.ticksPerRequest;
+                            }
+
                             if (timeToOur < timeLimit)
                                 timeLimit = timeToOur;
                         }
@@ -176,6 +208,62 @@ namespace Game.Strategies
                             {
                                 nextTimeLimit = -1;
                                 break;
+                            }
+                        }
+
+                        var nearestOwned = distanceMap.nearestOwned[other];
+                        if (nearestOwned != ushort.MaxValue)
+                        {
+                            var timeToOwn = distanceMap.times[other, nearestOwned];
+                            if (timeToOwn != -1 && timeToOwn != int.MaxValue)
+                            {
+                                var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
+                                var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
+                                var mDist = state.MDist(nearestOwned, nextPos);
+
+                                if (otherNitroLeft > mDist)
+                                    otherNitroLeft = mDist;
+                                if (otherSlowLeft > mDist)
+                                    otherSlowLeft = mDist;
+
+                                var prevShiftTime = otherNitroLeft == mDist && otherSlowLeft == mDist ? state.config.ticksPerRequest
+                                    : otherNitroLeft == mDist ? state.config.nitroTicksPerRequest
+                                    : otherSlowLeft == mDist ? state.config.slowTicksPerRequest
+                                    : state.config.ticksPerRequest;
+                                
+                                var timeToOur = timeToOwn;
+                                if (otherNitroLeft > otherSlowLeft)
+                                {
+                                    mDist -= otherSlowLeft;
+                                    otherNitroLeft -= otherSlowLeft;
+                                    timeToOur += otherSlowLeft * state.config.ticksPerRequest;
+
+                                    mDist -= otherNitroLeft;
+                                    timeToOur += otherNitroLeft * state.config.nitroTicksPerRequest;
+
+                                    timeToOur += mDist * state.config.ticksPerRequest;
+                                }
+                                else
+                                {
+                                    mDist -= otherNitroLeft;
+                                    otherSlowLeft -= otherNitroLeft;
+                                    timeToOur += otherNitroLeft * state.config.ticksPerRequest;
+
+                                    mDist -= otherSlowLeft;
+                                    timeToOur += otherSlowLeft * state.config.slowTicksPerRequest;
+
+                                    timeToOur += mDist * state.config.ticksPerRequest;
+                                }
+
+                                if (timeToOur < nextTimeLimit)
+                                    nextTimeLimit = timeToOur;
+                                
+                                var otherEnterTime = timeToOur - prevShiftTime;
+                                if (otherEnterTime < escapeTime)
+                                {
+                                    nextTimeLimit = -1;
+                                    break;
+                                }
                             }
                         }
                     }
