@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Game.Protocol;
 using Game.Types;
@@ -12,9 +13,31 @@ namespace Game.Fast
         public int[] territoryCaptureCount;
         public ushort[,] territoryCapture;
 
+        public bool perfTest;
+
         private int queueGen;
         private ushort[] queue;
         private int[] used;
+
+        public static int Perf(FastState state)
+        {
+            var sut = new FastTerritoryCapture();
+            sut.perfTest = true;
+            sut.Init(state.config, state.players.Length);
+            sut.Clear();
+            sut.Capture(state, state.curPlayer);
+            
+            var stopwatch = Stopwatch.StartNew();
+            var counter = 0;
+            while (stopwatch.ElapsedMilliseconds < 1000)
+            {
+                counter++;
+                sut.Clear();
+                sut.Capture(state, state.curPlayer);
+            }
+
+            return counter;
+        }
 
         public void Init(Config config, int playerCount)
         {
@@ -144,18 +167,22 @@ namespace Game.Fast
             }
         }
 
-        public void Capture(FastState state, int player, Config config)
+        public void Capture(FastState state, int player)
         {
-            if (state.players[player].lineCount == 0)
-                return;
-            if (state.territory[state.players[player].arrivePos] != player)
-                return;
+            if (!perfTest)
+            {
+                if (state.players[player].lineCount == 0)
+                    return;
+                if (state.territory[state.players[player].arrivePos] != player)
+                    return;
+            }
 
             queueGen++;
 
             var tail = 0;
             var head = 0;
 
+            var config = state.config;
             for (ushort x = 0; x < config.x_cells_count; x++)
             {
                 if (state.territory[x] != player && (state.lines[x] & (1 << player)) == 0)

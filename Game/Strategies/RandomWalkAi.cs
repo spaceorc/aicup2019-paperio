@@ -74,6 +74,7 @@ namespace Game.Strategies
             backup.Backup(state);
             var invalidPathCounter = 0;
             var pathCounter = 0;
+            var validPathCounter = 0;
             Direction? bestDir = null;
             int bestScore = 0;
             int bestLen = 0;
@@ -81,8 +82,14 @@ namespace Game.Strategies
             while (!timeManager.IsExpired)
             {
                 ++pathCounter;
+                if (pathCounter == 112)
+                {
+                    var a = 10;
+                }
+
                 if (randomPath.Generate(state, player, distanceMap))
                 {
+                    ++validPathCounter;
                     var dir = default(Direction);
                     for (int i = 0; i < state.players.Length; i++)
                     {
@@ -98,6 +105,11 @@ namespace Game.Strategies
                             else
                                 paths[i].Clear();
                         }
+                    }
+
+                    if (dir == Direction.Up)
+                    {
+                        var a = 10;
                     }
 
                     while (true)
@@ -163,7 +175,7 @@ namespace Game.Strategies
             {
                 paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
                 if (paths[player].len > 0)
-                    return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. Simulations: {simulations}"};
+                    return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
 
                 Direction? validDir = null;
                 if (state.players[player].dir == null)
@@ -175,7 +187,7 @@ namespace Game.Strategies
                         {
                             validDir = (Direction)d;
                             if (state.territory[next] == player)
-                                return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. Simulations: {simulations}"};
+                                return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
                         }
                     }
                 }
@@ -189,15 +201,15 @@ namespace Game.Strategies
                         {
                             validDir = nd;
                             if (state.territory[next] == player)
-                                return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. Simulations: {simulations}"};
+                                return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
                         }
                     }
                 }
 
-                return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. Simulations: {simulations}"};
+                return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
             }
 
-            return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("Couldn't best path"), Debug = $"Paths: {pathCounter}. Simulations: {simulations}"};
+            return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("Couldn't best path"), Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestScore: {bestScore}"};
         }
 
         private int Evaluate(FastState state, int player)

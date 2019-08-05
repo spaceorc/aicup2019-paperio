@@ -293,7 +293,7 @@ namespace Game.Fast
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
                     // Capture
-                    capture.Capture(this, i, config);
+                    capture.Capture(this, i);
                     if (capture.territoryCaptureCount[i] > 0)
                     {
                         for (int l = 0; l < players[i].lineCount; l++)
