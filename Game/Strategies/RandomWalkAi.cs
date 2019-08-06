@@ -183,9 +183,12 @@ namespace Game.Strategies
                 }
                 else
                 {
-                    for (int d = 3; d <= 5; d++)
+                    var sd = random.Next(3);
+                    for (int d = 0; d < 4; d++)
                     {
-                        var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
+                        var nd = (Direction)(((int)state.players[player].dir.Value + 3 + sd + d) % 4);
+                        if (nd == (Direction)(((int)state.players[player].dir.Value + 2) % 4))
+                            continue;
                         var next = state.NextCoord(state.players[player].arrivePos, nd);
                         if (next != ushort.MaxValue)
                         {
