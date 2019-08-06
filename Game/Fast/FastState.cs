@@ -603,14 +603,14 @@ namespace Game.Fast
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;
 
-                    if (players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
+                    if (players[k].arriveTime == 0 && players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
                         players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
                         players[k].tickScore += Env.LINE_KILL_SCORE;
                     }
 
-                    if (players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
+                    if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
                     {
                         players[k].status = PlayerStatus.Loser;
                         players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
