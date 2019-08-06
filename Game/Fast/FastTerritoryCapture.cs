@@ -72,7 +72,7 @@ namespace Game.Fast
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int EatenBy(ushort v, int player)
+        public int EatenBy(ushort v)
         {
             var mask = territoryCaptureMask[v];
             if ((mask & ~0xFF) != gen)
@@ -144,7 +144,7 @@ namespace Game.Fast
             }
         }
 
-        public void Capture(FastState state, int player, Config config)
+        public void Capture(FastState state, int player)
         {
             if (state.players[player].lineCount == 0)
                 return;
@@ -156,6 +156,7 @@ namespace Game.Fast
             var tail = 0;
             var head = 0;
 
+            var config = state.config;
             for (ushort x = 0; x < config.x_cells_count; x++)
             {
                 if (state.territory[x] != player && (state.lines[x] & (1 << player)) == 0)

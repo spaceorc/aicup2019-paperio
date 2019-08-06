@@ -293,7 +293,7 @@ namespace Game.Fast
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
                     // Capture
-                    capture.Capture(this, i, config);
+                    capture.Capture(this, i);
                     if (capture.territoryCaptureCount[i] > 0)
                     {
                         for (int l = 0; l < players[i].lineCount; l++)
@@ -555,8 +555,8 @@ namespace Game.Fast
                 if (players[i].status != PlayerStatus.Active)
                     continue;
 
-                var prevPosEatenBy = capture.EatenBy(players[i].pos, i);
-                if (prevPosEatenBy != -1)
+                var prevPosEatenBy = capture.EatenBy(players[i].pos);
+                if (prevPosEatenBy != -1 && prevPosEatenBy != i)
                 {
                     if (players[i].arriveTime != 0)
                     {
@@ -565,7 +565,7 @@ namespace Game.Fast
                     }
                     else
                     {
-                        var eatenBy = capture.EatenBy(players[i].arrivePos, i);
+                        var eatenBy = capture.EatenBy(players[i].arrivePos);
                         if (eatenBy == prevPosEatenBy)
                         {
                             players[i].status = PlayerStatus.Loser;
