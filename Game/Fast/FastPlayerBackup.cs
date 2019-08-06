@@ -18,6 +18,8 @@ namespace Game.Fast
         public int nitroLeft;
         public int slowLeft;
         public int territory;
+        public int nitrosCollected;
+        public int slowsCollected;
 
         public int lineCount;
         public ushort[] line;
@@ -40,6 +42,8 @@ namespace Game.Fast
             slowLeft = player.slowLeft;
             territory = player.territory;
             lineCount = player.lineCount;
+            nitrosCollected = player.nitrosCollected;
+            slowsCollected = player.slowsCollected;
 
             if (line == null)
                 line = new ushort[player.line.Length];
@@ -65,6 +69,8 @@ namespace Game.Fast
             player.slowLeft = slowLeft;
             player.territory = territory;
             player.lineCount = lineCount;
+            player.nitrosCollected = nitrosCollected;
+            player.slowsCollected = slowsCollected;
             
             Array.Copy(line, player.line, lineCount);
         }

@@ -19,6 +19,8 @@ namespace Game.Fast
         public int nitroLeft;
         public int slowLeft;
         public int territory;
+        public int nitrosCollected;
+        public int slowsCollected;
         
         public int lineCount;
         public ushort[] line;

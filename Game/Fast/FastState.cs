@@ -212,6 +212,9 @@ namespace Game.Fast
                     players[i].nitroLeft = playerData.bonuses.FirstOrDefault(b => b.type == BonusType.N)?.ticks ?? 0;
                     players[i].lineCount = playerData.lines.Length;
                     players[i].territory = playerData.territory.Length;
+                    players[i].slowsCollected = 0;
+                    players[i].nitrosCollected = 0;
+                    players[i].killedBy = 0;
 
                     for (var k = 0; k < playerData.lines.Length; k++)
                     {
@@ -335,6 +338,7 @@ namespace Game.Fast
                                 else
                                     players[i].nitroLeft = bonusTime;
                                 players[i].UpdateShiftTime(config);
+                                players[i].nitrosCollected++;
                             }
                             else if (bonuses[b].type == BonusType.S)
                             {
@@ -344,6 +348,7 @@ namespace Game.Fast
                                 else
                                     players[i].slowLeft = bonusTime;
                                 players[i].UpdateShiftTime(config);
+                                players[i].slowsCollected++;
                             }
                             else if (bonuses[b].type == BonusType.Saw)
                             {
