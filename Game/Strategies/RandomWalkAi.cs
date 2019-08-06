@@ -51,7 +51,41 @@ namespace Game.Strategies
                         next = cur;
 
                     if (next != target && state.territory[next] == player)
+                    {
+                        if (state.players[player].dir != null)
+                        {
+                            for (int d = 3; d <= 5; d++)
+                            {
+                                var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
+                                var ne = state.NextCoord(state.players[player].arrivePos, nd);
+                                if (ne != ushort.MaxValue)
+                                {
+                                    if (state.territory[ne] == player)
+                                    {
+                                        for (int other = 0; other < state.players.Length; other++)
+                                        {
+                                            if (other == player || state.players[other].status == PlayerStatus.Eliminated)
+                                                continue;
+                                            if ((state.lines[ne] & (1 << other)) != 0 || state.players[other].arrivePos == ne)
+                                            {
+                                                if (distanceMap.nearestOwned[other] != ushort.MaxValue)
+                                                {
+                                                    var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
+                                                    var timeToCatch = state.players[player].shiftTime;
+                                                    if (timeToCatch < timeToOwn)
+                                                        return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
+                                                }
+                                                else
+                                                    return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = $"Goto nearest {state.players[player].arrivePos}->{target}"};
+                    }
                 }
             }
             else
