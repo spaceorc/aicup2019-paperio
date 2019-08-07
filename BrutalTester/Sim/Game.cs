@@ -326,17 +326,14 @@ namespace BrutalTester.Sim
                 }
             }
 
-            if (player.Lines.Count > 0)
+            foreach (var p in Players)
             {
-                foreach (var p in Players)
+                if (p != player && p.Pos.IntersectsWith(player.Pos, Env.WIDTH))
                 {
-                    if (p != player && p.Pos.IntersectsWith(player.Pos, Env.WIDTH))
+                    if (player.Lines.Count >= p.Lines.Count)
                     {
-                        if (player.Lines.Count >= p.Lines.Count)
-                        {
-                            isLoss = true;
-                            break;
-                        }
+                        isLoss = true;
+                        break;
                     }
                 }
             }

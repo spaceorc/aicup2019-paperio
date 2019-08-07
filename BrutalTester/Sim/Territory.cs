@@ -195,6 +195,7 @@ namespace BrutalTester.Sim
         private List<List<V>> GetVoidsBetweenLinesAndTerritory(List<V> lines)
         {
             var boundary = GetBoundary();
+            var graph = GetGraph(boundary);
             var voids = new List<List<V>>();
 
             for (var i_lp1 = 0; i_lp1 < lines.Count; i_lp1++)
@@ -208,18 +209,18 @@ namespace BrutalTester.Sim
                         for (var i_lp2 = 0; i_lp2 <= i_lp1; i_lp2++)
                         {
                             var lp2 = lines[i_lp2];
-                            var startPoint = GetNearestBoundary(lp2, boundary);
-                            if (startPoint != null)
+                            var startPoints = GetStartPoints(lp2, boundary);
+                            foreach (var startPoint in startPoints)
                             {
                                 if (prev != null && (IsSiblings(prev, startPoint) || prev == startPoint))
                                 {
                                     prev = startPoint;
                                     continue;
                                 }
-                                
+
                                 var endIndex = boundary.IndexOf(point);
                                 var startIndex = boundary.IndexOf(startPoint);
-                                var path = GetPath(startIndex, endIndex, boundary);
+                                var path = graph.FindPath(endIndex, startIndex);
                                 if (path == null)
                                     continue;
 
@@ -232,9 +233,8 @@ namespace BrutalTester.Sim
                                         .Concat(path.Select(index => boundary[index]))
                                         .ToList()
                                 );
+                                prev = startPoint;
                             }
-
-                            prev = startPoint;
                         }
                     }
                 }
@@ -243,15 +243,16 @@ namespace BrutalTester.Sim
             return voids;
         }
 
-        private static V GetNearestBoundary(V point, List<V> boundary)
+        private static List<V> GetStartPoints(V point, List<V> boundary)
         {
+            var result = new List<V>();
             foreach (var neighbor in point.GetSelfAndNeighboring(Env.WIDTH))
             {
                 if (boundary.Contains(neighbor))
-                    return neighbor;
+                    result.Add(neighbor);
             }
 
-            return null;
+            return result;
         }
 
         private static IEnumerable<V> GetSiblings(V point, List<V> boundary)
@@ -259,7 +260,7 @@ namespace BrutalTester.Sim
             return point.GetNeighboring(Env.WIDTH).Where(boundary.Contains);
         }
 
-        private static List<int> GetPath(int startIndex, int endIndex, List<V> boundary)
+        private static Graph GetGraph(List<V> boundary)
         {
             var graph = new Graph();
             for (var index = 0; index < boundary.Count; index++)
@@ -270,7 +271,7 @@ namespace BrutalTester.Sim
                     graph.AddEdge(index, boundary.IndexOf(sibling));
             }
 
-            return graph.FindPath(endIndex, startIndex);
+            return graph;
         }
     }
 }

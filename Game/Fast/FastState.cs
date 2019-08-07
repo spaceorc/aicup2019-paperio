@@ -311,7 +311,7 @@ namespace Game.Fast
                 }
             }
 
-            CheckLoss(config);
+            CheckLoss();
 
             CheckIsAte();
 
@@ -581,7 +581,7 @@ namespace Game.Fast
             }
         }
 
-        private void CheckLoss(Config config)
+        private void CheckLoss()
         {
             for (int i = 0; i < players.Length; i++)
             {
@@ -673,13 +673,13 @@ namespace Game.Fast
 
                     if (collides)
                     {
-                        if (players[i].lineCount > 0 && players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
+                        if (players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
                         {
                             players[i].status = PlayerStatus.Loser;
                             players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
                         }
 
-                        if (players[k].lineCount > 0 && players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
+                        if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
                         {
                             players[k].status = PlayerStatus.Loser;
                             players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
