@@ -255,11 +255,11 @@ namespace Game.Strategies
 
             score += state.players[player].score;
 
-            if (state.time < Env.MAX_TICK_COUNT - 100)
-            {
-                score += state.players[player].nitrosCollected * 20;
-                score -= state.players[player].slowsCollected * 50;
-            }
+            // if (state.time < Env.MAX_TICK_COUNT - 100)
+            // {
+            //     score += state.players[player].nitrosCollected * 20;
+            //     score -= state.players[player].slowsCollected * 50;
+            // }
 
             // score += state.players[player].nitrosCollected * 30 * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest) / state.config.ticksPerRequest; 
             // score -= state.players[player].slowsCollected * 30 * (state.config.slowTicksPerRequest - state.config.ticksPerRequest) / state.config.ticksPerRequest; 
