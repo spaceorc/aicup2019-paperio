@@ -54,7 +54,7 @@ namespace Game.Strategies
                     if (nearestOwned != ushort.MaxValue)
                     {
                         var timeToOwn = distanceMap.times[other, nearestOwned];
-                        if (timeToOwn != -1 && timeToOwn != int.MaxValue)
+                        if (timeToOwn != 0 && timeToOwn != -1 && timeToOwn != int.MaxValue)
                         {
                             var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
                             var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
@@ -144,6 +144,12 @@ namespace Game.Strategies
                 for (int i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
+
+                    if (nextDir == Direction.Down && dir == Direction.Right && len == 1)
+                    {
+                        var a = 10;
+                    }
+
                     var nextPos = state.NextCoord(pos, nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
@@ -200,14 +206,17 @@ namespace Game.Strategies
                                 break;
                             }
 
-                            var prevOtherPos = distanceMap.paths[other, nextPos];
-                            var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
-                            var otherEnterTime = otherTimeToPos - prevShiftTime;
-
-                            if (otherEnterTime < escapeTime)
+                            if (state.territory[nextPos] != player)
                             {
-                                nextTimeLimit = -1;
-                                break;
+                                var prevOtherPos = distanceMap.paths[other, nextPos];
+                                var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                                var otherEnterTime = otherTimeToPos - prevShiftTime;
+
+                                if (otherEnterTime < escapeTime)
+                                {
+                                    nextTimeLimit = -1;
+                                    break;
+                                }
                             }
                         }
 
@@ -215,7 +224,7 @@ namespace Game.Strategies
                         if (nearestOwned != ushort.MaxValue)
                         {
                             var timeToOwn = distanceMap.times[other, nearestOwned];
-                            if (timeToOwn != -1 && timeToOwn != int.MaxValue)
+                            if (timeToOwn != 0 && timeToOwn != -1 && timeToOwn != int.MaxValue)
                             {
                                 var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
                                 var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
