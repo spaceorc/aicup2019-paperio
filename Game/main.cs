@@ -34,7 +34,10 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    var ai = new RandomWalkAi(conquerOpponent: args.ElementAtOrDefault(0) != "prev");
+                    var ai = new RandomWalkAi(
+                        args.ElementAtOrDefault(0) == "prev"
+                            ? (IStartPathStrategy)new NearestOpponentStartPathStrategy()
+                            : new SafestOpponentStartPathStrategy());
                     strategy = new Strategy(readResult.Config, ai);
                     continue;
                 }
@@ -57,7 +60,7 @@ namespace Game
                     ConsoleProtocol.Write(command);
                     continue;
                 }
-                
+
                 Logger.Debug($"Unexpected type: {readResult.Type}");
             }
         }

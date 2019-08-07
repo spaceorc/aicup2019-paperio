@@ -8,16 +8,16 @@ namespace Game.Strategies
 {
     public class RandomWalkAi : IAi
     {
-        private readonly bool conquerOpponent;
+        private readonly IStartPathStrategy startPathStrategy;
         private readonly RandomPathGenerator randomPath = new RandomPathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly FastStateBackup backup = new FastStateBackup();
         private PathBuilder[] paths;
         private Direction[] commands;
 
-        public RandomWalkAi(bool conquerOpponent)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy)
         {
-            this.conquerOpponent = conquerOpponent;
+            this.startPathStrategy = startPathStrategy;
         }
 
         public RequestOutput GetCommand(FastState state, int player, ITimeManager timeManager, Random random)
@@ -34,75 +34,43 @@ namespace Game.Strategies
 
             distanceMap.Build(state);
 
-            if (conquerOpponent)
+            if (state.territory[state.players[player].arrivePos] == player)
             {
-                if (state.territory[state.players[player].arrivePos] == player)
+                if (state.players[player].dir != null)
                 {
-                    var target = distanceMap.nearestOpponent[player];
-                    if (target == ushort.MaxValue)
+                    for (int d = 3; d <= 5; d++)
                     {
-                        target = distanceMap.nearestEmpty[player];
-                        if (target == ushort.MaxValue)
-                            throw new InvalidOperationException("Couldn't find nearest to conquer");
-                    }
-
-                    var next = target;
-                    for (var cur = target; cur != state.players[player].arrivePos; cur = (ushort)distanceMap.paths[player, cur])
-                        next = cur;
-
-                    if (next != target && state.territory[next] == player)
-                    {
-                        if (state.players[player].dir != null)
+                        var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
+                        var ne = state.NextCoord(state.players[player].arrivePos, nd);
+                        if (ne != ushort.MaxValue)
                         {
-                            for (int d = 3; d <= 5; d++)
+                            if (state.territory[ne] == player)
                             {
-                                var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
-                                var ne = state.NextCoord(state.players[player].arrivePos, nd);
-                                if (ne != ushort.MaxValue)
+                                for (int other = 0; other < state.players.Length; other++)
                                 {
-                                    if (state.territory[ne] == player)
+                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated)
+                                        continue;
+                                    if ((state.lines[ne] & (1 << other)) != 0 || (state.players[other].arrivePos == ne && state.players[other].lineCount > 0))
                                     {
-                                        for (int other = 0; other < state.players.Length; other++)
+                                        if (distanceMap.nearestOwned[other] != ushort.MaxValue)
                                         {
-                                            if (other == player || state.players[other].status == PlayerStatus.Eliminated)
-                                                continue;
-                                            if ((state.lines[ne] & (1 << other)) != 0 || state.players[other].arrivePos == ne)
-                                            {
-                                                if (distanceMap.nearestOwned[other] != ushort.MaxValue)
-                                                {
-                                                    var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
-                                                    var timeToCatch = state.players[player].shiftTime;
-                                                    if (timeToCatch < timeToOwn)
-                                                        return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
-                                                }
-                                                else
-                                                    return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
-                                            }
+                                            var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
+                                            var timeToCatch = state.players[player].shiftTime;
+                                            if (timeToCatch < timeToOwn)
+                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
                                         }
+                                        else
+                                            return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
                                     }
                                 }
                             }
                         }
-                        
-                        return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = $"Goto nearest {state.players[player].arrivePos}->{target}"};
                     }
                 }
-            }
-            else
-            {
-                if (state.territory[state.players[player].arrivePos] == player)
-                {
-                    var empty = distanceMap.nearestEmpty[player];
-                    if (empty == ushort.MaxValue)
-                        throw new InvalidOperationException("Couldn't find nearest to conquer");
-
-                    var next = empty;
-                    for (var cur = empty; cur != state.players[player].arrivePos; cur = (ushort)distanceMap.paths[player, cur])
-                        next = cur;
-
-                    if (next != empty)
-                        return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = $"Goto nearest {state.players[player].arrivePos}->{empty}"};
-                }
+                
+                var startPathOutput = startPathStrategy.GotoStart(state, player, distanceMap);
+                if (startPathOutput != null)
+                    return startPathOutput;
             }
 
             backup.Backup(state);
