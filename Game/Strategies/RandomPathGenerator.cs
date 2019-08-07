@@ -144,12 +144,6 @@ namespace Game.Strategies
                 for (int i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
-
-                    if (nextDir == Direction.Down && dir == Direction.Right && len == 1)
-                    {
-                        var a = 10;
-                    }
-
                     var nextPos = state.NextCoord(pos, nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
@@ -206,17 +200,14 @@ namespace Game.Strategies
                                 break;
                             }
 
-                            if (state.territory[nextPos] != player)
-                            {
-                                var prevOtherPos = distanceMap.paths[other, nextPos];
-                                var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
-                                var otherEnterTime = otherTimeToPos - prevShiftTime;
+                            var prevOtherPos = distanceMap.paths[other, nextPos];
+                            var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                            var otherEnterTime = otherTimeToPos - prevShiftTime;
 
-                                if (otherEnterTime < escapeTime)
-                                {
-                                    nextTimeLimit = -1;
-                                    break;
-                                }
+                            if (otherEnterTime < escapeTime)
+                            {
+                                nextTimeLimit = -1;
+                                break;
                             }
                         }
 
