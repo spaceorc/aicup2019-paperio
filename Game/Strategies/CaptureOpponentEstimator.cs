@@ -21,7 +21,14 @@ namespace Game.Strategies
             if (state.players[player].status == PlayerStatus.Eliminated)
                 baseScore = -1_000_000_000;
             else
-                baseScore = 100_000_000 - state.playersLeft * 10_000_000;
+            {
+                baseScore = 0;
+                for (int i = 0; i < state.players.Length; i++)
+                {
+                    if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
+                        baseScore += 10_000_000;
+                }
+            }
 
             var opponentCaptured = state.players[player].opponentTerritoryCaptured - prevCaptured;
             var score = state.players[player].score - prevScore;
