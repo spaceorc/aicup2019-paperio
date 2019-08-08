@@ -66,10 +66,10 @@ namespace UnitTests
             };
             config.Prepare();
 
-            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (12)"));
+            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (14)"));
 
             var visioInfo = (JArray)visio["visio_info"];
-            var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == "475");
+            var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == "907");
 
             var input = tick.ToObject<RequestInput>(JsonSerializer.Create(ConsoleProtocol.jsonSerializerSettings));
 
@@ -85,9 +85,9 @@ namespace UnitTests
 
             Console.Out.WriteLine(state.Print());
 
-            var ai = new RandomWalkAi(new SafestOpponentStartPathStrategy(), new BestScoreEstimator());
+            var ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator());
 
-            var command = ai.GetCommand(state, 4, new TestingTimeManager(52527), new Random(674231108));
+            var command = ai.GetCommand(state, state.curPlayer, new TestingTimeManager(1985), new Random(1302800455));
 
             Console.Out.WriteLine(command.ToJson());
         }

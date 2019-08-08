@@ -1,4 +1,5 @@
 using Game.Fast;
+using Game.Protocol;
 
 namespace Game.Strategies
 {
@@ -28,6 +29,12 @@ namespace Game.Strategies
                     if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
                         baseScore += 10_000_000;
                 }
+            }
+
+            if (state.time < Env.MAX_TICK_COUNT - 100)
+            {
+                baseScore += 1.0 * state.players[player].nitrosCollected * state.config.width * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest) / state.config.ticksPerRequest; 
+                baseScore -= 1.0 * state.players[player].slowsCollected * state.config.width * (state.config.slowTicksPerRequest - state.config.ticksPerRequest) / state.config.ticksPerRequest; 
             }
 
             var opponentCaptured = state.players[player].opponentTerritoryCaptured - prevCaptured;
