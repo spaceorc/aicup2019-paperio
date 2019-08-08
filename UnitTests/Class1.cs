@@ -42,7 +42,7 @@ namespace UnitTests
 
             Console.Out.WriteLine(state.Print());
 
-            var ai = new RandomWalkAi(new NearestOpponentStartPathStrategy());
+            var ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new BestScoreEstimator());
 
             var command = ai.GetCommand(state, state.curPlayer, new TestingTimeManager(1000), new Random(-1142053022));
 
@@ -85,7 +85,7 @@ namespace UnitTests
 
             Console.Out.WriteLine(state.Print());
 
-            var ai = new RandomWalkAi(new SafestOpponentStartPathStrategy());
+            var ai = new RandomWalkAi(new SafestOpponentStartPathStrategy(), new BestScoreEstimator());
 
             var command = ai.GetCommand(state, 4, new TestingTimeManager(52527), new Random(674231108));
 

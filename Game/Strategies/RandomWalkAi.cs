@@ -9,15 +9,17 @@ namespace Game.Strategies
     public class RandomWalkAi : IAi
     {
         private readonly IStartPathStrategy startPathStrategy;
+        private readonly IEstimator estimator;
         private readonly RandomPathGenerator randomPath = new RandomPathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly FastStateBackup backup = new FastStateBackup();
         private PathBuilder[] paths;
         private Direction[] commands;
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy, IEstimator estimator)
         {
             this.startPathStrategy = startPathStrategy;
+            this.estimator = estimator;
         }
 
         public RequestOutput GetCommand(FastState state, int player, ITimeManager timeManager, Random random)
@@ -67,18 +69,19 @@ namespace Game.Strategies
                         }
                     }
                 }
-                
+
                 var startPathOutput = startPathStrategy.GotoStart(state, player, distanceMap);
                 if (startPathOutput != null)
                     return startPathOutput;
             }
 
             backup.Backup(state);
+            estimator.Before(state, player);
             var invalidPathCounter = 0;
             var pathCounter = 0;
             var validPathCounter = 0;
             Direction? bestDir = null;
-            int bestScore = 0;
+            double bestScore = 0;
             int bestLen = 0;
             long simulations = 0;
             while (!timeManager.IsExpired)
@@ -137,8 +140,8 @@ namespace Game.Strategies
                         simulations++;
                         if (state.isGameOver || state.players[player].status == PlayerStatus.Eliminated || paths[player].len == 0 && state.players[player].arriveTime == 0)
                         {
-                            var score = Evaluate(state, player);
-                            if (score > bestScore || score == bestScore && randomPath.len < bestLen)
+                            var score = estimator.Estimate(state, player);
+                            if (score > bestScore || score > bestScore - 1e-6 && randomPath.len < bestLen)
                             {
                                 bestScore = score;
                                 bestDir = dir;
@@ -205,34 +208,6 @@ namespace Game.Strategies
             }
 
             return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("Couldn't best path"), Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestScore: {bestScore}"};
-        }
-
-        private int Evaluate(FastState state, int player)
-        {
-            var score = 0;
-            if (state.players[player].status == PlayerStatus.Eliminated)
-                score -= 1_000_000_000;
-            else
-            {
-                for (int i = 0; i < state.players.Length; i++)
-                {
-                    if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
-                        score += 1_000_000;
-                }
-            }
-
-            score += state.players[player].score;
-
-            // if (state.time < Env.MAX_TICK_COUNT - 100)
-            // {
-            //     score += state.players[player].nitrosCollected * 20;
-            //     score -= state.players[player].slowsCollected * 50;
-            // }
-
-            // score += state.players[player].nitrosCollected * 30 * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest) / state.config.ticksPerRequest; 
-            // score -= state.players[player].slowsCollected * 30 * (state.config.slowTicksPerRequest - state.config.ticksPerRequest) / state.config.ticksPerRequest; 
-
-            return score;
         }
     }
 }

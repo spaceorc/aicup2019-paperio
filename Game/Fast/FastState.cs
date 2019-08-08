@@ -215,6 +215,7 @@ namespace Game.Fast
                     players[i].slowsCollected = 0;
                     players[i].nitrosCollected = 0;
                     players[i].killedBy = 0;
+                    players[i].opponentTerritoryCaptured = 0;
 
                     for (var k = 0; k < playerData.lines.Length; k++)
                     {

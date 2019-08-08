@@ -34,10 +34,7 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    var ai = new RandomWalkAi(
-                        args.ElementAtOrDefault(0) == "prev"
-                            ? (IStartPathStrategy)new NearestOpponentStartPathStrategy()
-                            : new SafestOpponentStartPathStrategy());
+                    var ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator());
                     strategy = new Strategy(readResult.Config, ai);
                     continue;
                 }

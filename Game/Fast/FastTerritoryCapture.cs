@@ -90,7 +90,7 @@ namespace Game.Fast
                 if (mask == 1 << i)
                     return i;
             }
-            
+
             return -1;
         }
 
@@ -132,6 +132,7 @@ namespace Game.Fast
                             if (owner != 0xFF && state.players[owner].status != PlayerStatus.Eliminated)
                             {
                                 state.players[player].tickScore += Env.ENEMY_TERRITORY_SCORE - Env.NEUTRAL_TERRITORY_SCORE;
+                                state.players[player].opponentTerritoryCaptured++;
                                 state.players[owner].territory--;
                             }
 
