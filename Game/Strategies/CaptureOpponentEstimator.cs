@@ -31,15 +31,22 @@ namespace Game.Strategies
                 }
             }
 
-            if (state.time < Env.MAX_TICK_COUNT - 100)
-            {
-                baseScore += 1.0 * state.players[player].nitrosCollected * state.config.width * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest) / state.config.ticksPerRequest; 
-                baseScore -= 1.0 * state.players[player].slowsCollected * state.config.width * (state.config.slowTicksPerRequest - state.config.ticksPerRequest) / state.config.ticksPerRequest; 
-            }
-
+            var nitroTimeBonus = state.players[player].nitrosCollected * 30 * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest);
+            var nitroScoreBonus = nitroTimeBonus / state.config.ticksPerRequest;
+            
+            var slowTimePenalty = state.players[player].slowsCollected * 30 * (state.config.slowTicksPerRequest - state.config.ticksPerRequest);
+            var slowScorePenalty = slowTimePenalty / state.config.ticksPerRequest;
+            
             var opponentCaptured = state.players[player].opponentTerritoryCaptured - prevCaptured;
             var score = state.players[player].score - prevScore;
             var time = state.time - prevTime;
+            
+            if (state.time < Env.MAX_TICK_COUNT - 100)
+            {
+                time += slowTimePenalty - nitroScoreBonus;
+                score += nitroScoreBonus - slowScorePenalty;
+            }
+            
             if (opponentCaptured > 0)
                 return baseScore + 100_000.0 * opponentCaptured - 100.0 * time + score;
 
