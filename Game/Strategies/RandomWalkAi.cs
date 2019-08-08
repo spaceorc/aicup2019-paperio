@@ -52,17 +52,44 @@ namespace Game.Strategies
                                 {
                                     if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                                         continue;
-                                    if ((state.lines[ne] & (1 << other)) != 0 || (state.players[other].arrivePos == ne && state.players[other].lineCount > 0))
+                                    if ((state.lines[ne] & (1 << other)) != 0)
                                     {
                                         if (distanceMap.nearestOwned[other] != ushort.MaxValue)
                                         {
                                             var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
                                             var timeToCatch = state.players[player].shiftTime;
                                             if (timeToCatch < timeToOwn)
-                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
+                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
                                         }
                                         else
-                                            return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha! {state.players[player].arrivePos}->{ne}"};
+                                            return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
+                                    }
+                                    
+                                    if (state.players[other].arrivePos == ne && state.players[other].lineCount > 0)
+                                    {
+                                        if (state.players[other].arriveTime > 0)
+                                            return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arriving player! {state.players[player].arrivePos}->{ne}"};
+
+                                        if (state.players[other].dir != null)
+                                        {
+                                            if (state.NextCoord(ne, state.players[other].dir.Value) == state.players[player].arrivePos)
+                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arrived player! {state.players[player].arrivePos}->{ne}"};
+                                            
+                                            if (state.players[other].shiftTime > state.players[player].shiftTime)
+                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow arrived player! {state.players[player].arrivePos}->{ne}"};
+                                        }
+                                    }
+                                    
+                                    if (state.players[other].pos == ne && state.players[other].lineCount > 0 && state.players[other].arriveTime > 1)
+                                    {
+                                        if (state.players[other].dir != null)
+                                        {
+                                            if (state.NextCoord(state.players[player].arrivePos, state.players[other].dir.Value) != ne)
+                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha escaping player! {state.players[player].arrivePos}->{ne}"};
+                                            
+                                            if (state.players[player].shiftTime < state.players[other].arriveTime)
+                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow escaping player! {state.players[player].arrivePos}->{ne}"};
+                                        }
                                     }
                                 }
                             }
