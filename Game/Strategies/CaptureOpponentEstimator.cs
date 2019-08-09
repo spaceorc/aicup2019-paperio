@@ -43,7 +43,7 @@ namespace Game.Strategies
             
             if (state.time < Env.MAX_TICK_COUNT - 100)
             {
-                time += slowTimePenalty - nitroScoreBonus;
+                time += slowTimePenalty - nitroTimeBonus;
                 score += nitroScoreBonus - slowScorePenalty;
             }
             
