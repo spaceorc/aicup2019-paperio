@@ -16,10 +16,11 @@ namespace Game.Strategies
         private PathBuilder[] paths;
         private Direction[] commands;
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy, IEstimator estimator)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy, IEstimator estimator, bool walkOnTerritory)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
+            randomPath.walkOnTerritory = walkOnTerritory;
         }
 
         public RequestOutput GetCommand(FastState state, int player, ITimeManager timeManager, Random random)
@@ -36,71 +37,11 @@ namespace Game.Strategies
 
             distanceMap.Build(state);
 
-            if (state.territory[state.players[player].arrivePos] == player)
-            {
-                if (state.players[player].dir != null)
-                {
-                    for (int d = 3; d <= 5; d++)
-                    {
-                        var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
-                        var ne = state.NextCoord(state.players[player].arrivePos, nd);
-                        if (ne != ushort.MaxValue)
-                        {
-                            if (state.territory[ne] == player)
-                            {
-                                for (int other = 0; other < state.players.Length; other++)
-                                {
-                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated)
-                                        continue;
-                                    if ((state.lines[ne] & (1 << other)) != 0)
-                                    {
-                                        if (distanceMap.nearestOwned[other] != ushort.MaxValue)
-                                        {
-                                            var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
-                                            var timeToCatch = state.players[player].shiftTime;
-                                            if (timeToCatch < timeToOwn)
-                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
-                                        }
-                                        else
-                                            return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
-                                    }
-                                    
-                                    if (state.players[other].arrivePos == ne && state.players[other].lineCount > 0)
-                                    {
-                                        if (state.players[other].arriveTime > 0)
-                                            return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arriving player! {state.players[player].arrivePos}->{ne}"};
+            if (TryKillOpponent(state, player, out var kill))
+                return kill;
 
-                                        if (state.players[other].dir != null)
-                                        {
-                                            if (state.NextCoord(ne, state.players[other].dir.Value) == state.players[player].arrivePos)
-                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arrived player! {state.players[player].arrivePos}->{ne}"};
-                                            
-                                            if (state.players[other].shiftTime > state.players[player].shiftTime)
-                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow arrived player! {state.players[player].arrivePos}->{ne}"};
-                                        }
-                                    }
-                                    
-                                    if (state.players[other].pos == ne && state.players[other].lineCount > 0 && state.players[other].arriveTime > 1)
-                                    {
-                                        if (state.players[other].dir != null)
-                                        {
-                                            if (state.NextCoord(state.players[player].arrivePos, state.players[other].dir.Value) != ne)
-                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha escaping player! {state.players[player].arrivePos}->{ne}"};
-                                            
-                                            if (state.players[player].shiftTime < state.players[other].arriveTime)
-                                                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow escaping player! {state.players[player].arrivePos}->{ne}"};
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                var startPathOutput = startPathStrategy.GotoStart(state, player, distanceMap);
-                if (startPathOutput != null)
-                    return startPathOutput;
-            }
+            if (!randomPath.walkOnTerritory && TryGotoStart(state, player, out var gotoStart))
+                return gotoStart;
 
             backup.Backup(state);
             estimator.Before(state, player);
@@ -192,9 +133,12 @@ namespace Game.Strategies
                 else
                     invalidPathCounter++;
             }
-
+            
             if (bestDir == null)
             {
+                if (randomPath.walkOnTerritory && TryGotoStart(state, player, out gotoStart))
+                    return gotoStart;
+                
                 paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
                 if (paths[player].len > 0)
                     return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
@@ -234,7 +178,112 @@ namespace Game.Strategies
                 return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
             }
 
-            return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("Couldn't best path"), Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestScore: {bestScore}"};
+            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestScore: {bestScore}"};
+        }
+
+        private bool TryGotoStart(FastState state, int player, out RequestOutput result)
+        {
+            if (state.territory[state.players[player].arrivePos] == player)
+            {
+                var startPathOutput = startPathStrategy.GotoStart(state, player, distanceMap);
+                if (startPathOutput != null)
+                {
+                    result = startPathOutput;
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
+        private bool TryKillOpponent(FastState state, int player, out RequestOutput result)
+        {
+            if (state.territory[state.players[player].arrivePos] == player)
+            {
+                if (state.players[player].dir != null)
+                {
+                    for (int d = 3; d <= 5; d++)
+                    {
+                        var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
+                        var ne = state.NextCoord(state.players[player].arrivePos, nd);
+                        if (ne != ushort.MaxValue)
+                        {
+                            if (state.territory[ne] == player)
+                            {
+                                for (int other = 0; other < state.players.Length; other++)
+                                {
+                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated)
+                                        continue;
+                                    if ((state.lines[ne] & (1 << other)) != 0)
+                                    {
+                                        if (distanceMap.nearestOwned[other] != ushort.MaxValue)
+                                        {
+                                            var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
+                                            var timeToCatch = state.players[player].shiftTime;
+                                            if (timeToCatch < timeToOwn)
+                                            {
+                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
+                                                return true;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
+                                            return true;
+                                        }
+                                    }
+
+                                    if (state.players[other].arrivePos == ne && state.players[other].lineCount > 0)
+                                    {
+                                        if (state.players[other].arriveTime > 0)
+                                        {
+                                            result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arriving player! {state.players[player].arrivePos}->{ne}"};
+                                            return true;
+                                        }
+
+                                        if (state.players[other].dir != null)
+                                        {
+                                            if (state.NextCoord(ne, state.players[other].dir.Value) == state.players[player].arrivePos)
+                                            {
+                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arrived player! {state.players[player].arrivePos}->{ne}"};
+                                                return true;
+                                            }
+
+                                            if (state.players[other].shiftTime > state.players[player].shiftTime)
+                                            {
+                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow arrived player! {state.players[player].arrivePos}->{ne}"};
+                                                return true;
+                                            }
+                                        }
+                                    }
+
+                                    if (state.players[other].pos == ne && state.players[other].lineCount > 0 && state.players[other].arriveTime > 1)
+                                    {
+                                        if (state.players[other].dir != null)
+                                        {
+                                            if (state.NextCoord(state.players[player].arrivePos, state.players[other].dir.Value) != ne)
+                                            {
+                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha escaping player! {state.players[player].arrivePos}->{ne}"};
+                                                return true;
+                                            }
+
+                                            if (state.players[player].shiftTime < state.players[other].arriveTime)
+                                            {
+                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow escaping player! {state.players[player].arrivePos}->{ne}"};
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            result = null;
+            return false;
         }
     }
 }

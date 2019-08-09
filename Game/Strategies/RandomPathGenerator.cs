@@ -23,6 +23,8 @@ namespace Game.Strategies
         public int[] dirChances;
         public int dirsCount;
 
+        public bool walkOnTerritory;
+
         public bool Generate(FastState state, int player, DistanceMapGenerator distanceMap)
         {
             if (coords == null)
@@ -97,6 +99,7 @@ namespace Game.Strategies
             }
 
             var pos = state.players[player].arrivePos;
+            var started = state.players[player].lineCount > 0;
             var dir = state.players[player].dir;
             var time = 0;
             var shiftTime = state.players[player].shiftTime;
@@ -148,17 +151,20 @@ namespace Game.Strategies
                     if (nextPos == ushort.MaxValue)
                         continue;
 
-                    if (pos == state.players[player].arrivePos)
+                    if (!walkOnTerritory)
                     {
-                        if (state.territory[pos] == player && state.territory[nextPos] == player)
-                            continue;
+                        if (pos == state.players[player].arrivePos)
+                        {
+                            if (state.territory[pos] == player && state.territory[nextPos] == player)
+                                continue;
+                        }
                     }
 
                     if (used[nextPos] == gen)
                         continue;
 
                     var nextTime = time + shiftTime;
-                    if (nextTime > timeLimit || nextTime == timeLimit && state.territory[nextPos] != player)
+                    if (nextTime > timeLimit || nextTime == timeLimit && (!started || state.territory[nextPos] != player))
                         continue;
 
                     var nextNitroLeft = nitroLeft;
@@ -182,93 +188,97 @@ namespace Game.Strategies
                     var escapeTime = nextTime + nextShiftTime;
 
                     var nextTimeLimit = timeLimit;
-                    for (int other = 0; other < state.players.Length; other++)
+                    var nextStarted = started || state.territory[nextPos] != player;
+                    if (nextStarted)
                     {
-                        if (other == player)
-                            continue;
-                        if (state.players[other].status == PlayerStatus.Eliminated)
-                            continue;
-                        var otherTimeToPos = distanceMap.times[other, nextPos];
-                        if (otherTimeToPos != -1 && otherTimeToPos != int.MaxValue)
+                        for (int other = 0; other < state.players.Length; other++)
                         {
-                            if (otherTimeToPos < nextTimeLimit)
-                                nextTimeLimit = otherTimeToPos;
-
-                            if (state.players[other].arrivePos == nextPos)
+                            if (other == player)
+                                continue;
+                            if (state.players[other].status == PlayerStatus.Eliminated)
+                                continue;
+                            var otherTimeToPos = distanceMap.times[other, nextPos];
+                            if (otherTimeToPos != -1 && otherTimeToPos != int.MaxValue)
                             {
-                                nextTimeLimit = -1;
-                                break;
-                            }
+                                if (otherTimeToPos < nextTimeLimit)
+                                    nextTimeLimit = otherTimeToPos;
 
-                            var prevOtherPos = distanceMap.paths[other, nextPos];
-                            var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
-                            var otherEnterTime = otherTimeToPos - prevShiftTime;
-
-                            if (otherEnterTime < escapeTime)
-                            {
-                                nextTimeLimit = -1;
-                                break;
-                            }
-                        }
-
-                        var nearestOwned = distanceMap.nearestOwned[other];
-                        if (nearestOwned != ushort.MaxValue)
-                        {
-                            var timeToOwn = distanceMap.times[other, nearestOwned];
-                            if (timeToOwn != 0 && timeToOwn != -1 && timeToOwn != int.MaxValue)
-                            {
-                                var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
-                                var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
-                                var mDist = state.MDist(nearestOwned, nextPos);
-
-                                if (otherNitroLeft > mDist)
-                                    otherNitroLeft = mDist;
-                                if (otherSlowLeft > mDist)
-                                    otherSlowLeft = mDist;
-
-                                var prevShiftTime = otherNitroLeft == mDist && otherSlowLeft == mDist ? state.config.ticksPerRequest
-                                    : otherNitroLeft == mDist ? state.config.nitroTicksPerRequest
-                                    : otherSlowLeft == mDist ? state.config.slowTicksPerRequest
-                                    : state.config.ticksPerRequest;
-                                
-                                var timeToOur = timeToOwn;
-                                if (otherNitroLeft > otherSlowLeft)
+                                if (state.players[other].arrivePos == nextPos)
                                 {
-                                    mDist -= otherSlowLeft;
-                                    otherNitroLeft -= otherSlowLeft;
-                                    timeToOur += otherSlowLeft * state.config.ticksPerRequest;
-
-                                    mDist -= otherNitroLeft;
-                                    timeToOur += otherNitroLeft * state.config.nitroTicksPerRequest;
-
-                                    timeToOur += mDist * state.config.ticksPerRequest;
-                                }
-                                else
-                                {
-                                    mDist -= otherNitroLeft;
-                                    otherSlowLeft -= otherNitroLeft;
-                                    timeToOur += otherNitroLeft * state.config.ticksPerRequest;
-
-                                    mDist -= otherSlowLeft;
-                                    timeToOur += otherSlowLeft * state.config.slowTicksPerRequest;
-
-                                    timeToOur += mDist * state.config.ticksPerRequest;
+                                    nextTimeLimit = -1;
+                                    break;
                                 }
 
-                                if (timeToOur < nextTimeLimit)
-                                    nextTimeLimit = timeToOur;
-                                
-                                var otherEnterTime = timeToOur - prevShiftTime;
+                                var prevOtherPos = distanceMap.paths[other, nextPos];
+                                var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                                var otherEnterTime = otherTimeToPos - prevShiftTime;
+
                                 if (otherEnterTime < escapeTime)
                                 {
                                     nextTimeLimit = -1;
                                     break;
                                 }
                             }
+
+                            var nearestOwned = distanceMap.nearestOwned[other];
+                            if (nearestOwned != ushort.MaxValue)
+                            {
+                                var timeToOwn = distanceMap.times[other, nearestOwned];
+                                if (timeToOwn != 0 && timeToOwn != -1 && timeToOwn != int.MaxValue)
+                                {
+                                    var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
+                                    var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
+                                    var mDist = state.MDist(nearestOwned, nextPos);
+
+                                    if (otherNitroLeft > mDist)
+                                        otherNitroLeft = mDist;
+                                    if (otherSlowLeft > mDist)
+                                        otherSlowLeft = mDist;
+
+                                    var prevShiftTime = otherNitroLeft == mDist && otherSlowLeft == mDist ? state.config.ticksPerRequest
+                                        : otherNitroLeft == mDist ? state.config.nitroTicksPerRequest
+                                        : otherSlowLeft == mDist ? state.config.slowTicksPerRequest
+                                        : state.config.ticksPerRequest;
+
+                                    var timeToOur = timeToOwn;
+                                    if (otherNitroLeft > otherSlowLeft)
+                                    {
+                                        mDist -= otherSlowLeft;
+                                        otherNitroLeft -= otherSlowLeft;
+                                        timeToOur += otherSlowLeft * state.config.ticksPerRequest;
+
+                                        mDist -= otherNitroLeft;
+                                        timeToOur += otherNitroLeft * state.config.nitroTicksPerRequest;
+
+                                        timeToOur += mDist * state.config.ticksPerRequest;
+                                    }
+                                    else
+                                    {
+                                        mDist -= otherNitroLeft;
+                                        otherSlowLeft -= otherNitroLeft;
+                                        timeToOur += otherNitroLeft * state.config.ticksPerRequest;
+
+                                        mDist -= otherSlowLeft;
+                                        timeToOur += otherSlowLeft * state.config.slowTicksPerRequest;
+
+                                        timeToOur += mDist * state.config.ticksPerRequest;
+                                    }
+
+                                    if (timeToOur < nextTimeLimit)
+                                        nextTimeLimit = timeToOur;
+
+                                    var otherEnterTime = timeToOur - prevShiftTime;
+                                    if (otherEnterTime < escapeTime)
+                                    {
+                                        nextTimeLimit = -1;
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    if (nextTime > nextTimeLimit || nextTime == nextTimeLimit && state.territory[nextPos] != player)
+                    if (nextTime > nextTimeLimit || nextTime == nextTimeLimit && (!started || state.territory[nextPos] != player))
                         continue;
 
                     found = true;
@@ -283,13 +293,14 @@ namespace Game.Strategies
                     nitroLeft = nextNitroLeft;
                     slowLeft = nextSlowLeft;
                     shiftTime = nextShiftTime;
+                    started = nextStarted;
                     break;
                 }
 
                 if (!found)
                     return false;
 
-                if (state.territory[pos] == player)
+                if (started && state.territory[pos] == player)
                     return true;
             }
         }
