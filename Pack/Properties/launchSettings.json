@@ -6,7 +6,7 @@
     },
     "Pack-rider": {
       "commandName": "Project",
-      "commandLineArgs": "../Game"
+      "commandLineArgs": "../../../Game"
     }
   }
 }
