@@ -66,16 +66,16 @@ namespace UnitTests
             };
             config.Prepare();
 
-            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (16)"));
+            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (17)"));
 
             var visioInfo = (JArray)visio["visio_info"];
-            var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == "883");
+            var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == "205");
 
             var input = tick.ToObject<RequestInput>(JsonSerializer.Create(ConsoleProtocol.jsonSerializerSettings));
 
-            input.players["i"] = input.players["6"];
+            input.players["i"] = input.players["4"];
             //input.players["1"] = input.players["5"];
-            input.players.Remove("6"); 
+            input.players.Remove("4"); 
             //input.players.Remove("5"); 
 
             // todo https://aicups.ru/session_debug/553525/
@@ -85,9 +85,9 @@ namespace UnitTests
 
             Console.Out.WriteLine(state.Print());
 
-            var ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), walkOnTerritory: false);
+            var ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), walkOnTerritory: true);
 
-            var command = ai.GetCommand(state, state.curPlayer, new TestingTimeManager(3757), new Random(1288440160));
+            var command = ai.GetCommand(state, state.curPlayer, new TestingTimeManager(3757), new Random(903215884));
 
             Console.Out.WriteLine(command.ToJson());
         }

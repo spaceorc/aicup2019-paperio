@@ -37,7 +37,7 @@ namespace Game
                     var ai = new RandomWalkAi(
                         new NearestOpponentStartPathStrategy(),
                         new CaptureOpponentEstimator(),
-                        walkOnTerritory: args.ElementAtOrDefault(0) != "prev");
+                        walkOnTerritory: true);
                     strategy = new Strategy(readResult.Config, ai);
                     continue;
                 }
