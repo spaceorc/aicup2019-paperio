@@ -8,7 +8,7 @@ namespace Game.Strategies
         {
         }
 
-        public double Estimate(FastState state, int player)
+        public double Estimate(FastState state, int player, int pathStartLen)
         {
             var score = 0;
             if (state.players[player].status == PlayerStatus.Eliminated)

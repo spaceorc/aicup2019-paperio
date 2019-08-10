@@ -18,6 +18,7 @@ namespace Game.Strategies
         public int[] used;
         public int len;
         public int gen;
+        public int startLen;
 
         public Direction[] dirs;
         public int[] dirChances;
@@ -38,6 +39,7 @@ namespace Game.Strategies
 
             gen++;
             len = 0;
+            startLen = 0;
             var timeLimit = Env.MAX_TICK_COUNT - state.time;
             for (int i = 0; i < state.players[player].lineCount; i++)
             {
@@ -285,6 +287,9 @@ namespace Game.Strategies
                     coords[len] = nextPos;
                     times[len] = nextTime;
                     used[nextPos] = gen;
+                    if (!started && nextStarted)
+                        startLen = len;
+
                     len++;
                     dir = nextDir;
                     pos = nextPos;

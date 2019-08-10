@@ -16,7 +16,7 @@ namespace Game.Strategies
             prevTime = state.time;
         }
 
-        public double Estimate(FastState state, int player)
+        public double Estimate(FastState state, int player, int pathStartLen)
         {
             double baseScore;
             if (state.players[player].status == PlayerStatus.Eliminated)
@@ -38,6 +38,9 @@ namespace Game.Strategies
             var slowScorePenalty = slowTimePenalty / state.config.ticksPerRequest;
             
             var opponentCaptured = state.players[player].opponentTerritoryCaptured - prevCaptured;
+            if (pathStartLen > 0 && opponentCaptured == 0)
+                return int.MinValue;
+
             var score = state.players[player].score - prevScore;
             var time = state.time - prevTime;
             

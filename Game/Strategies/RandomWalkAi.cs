@@ -51,6 +51,7 @@ namespace Game.Strategies
             Direction? bestDir = null;
             double bestScore = 0;
             int bestLen = 0;
+            string bestPath = null;
             long simulations = 0;
             while (!timeManager.IsExpired)
             {
@@ -108,12 +109,13 @@ namespace Game.Strategies
                         simulations++;
                         if (state.isGameOver || state.players[player].status == PlayerStatus.Eliminated || paths[player].len == 0 && state.players[player].arriveTime == 0)
                         {
-                            var score = estimator.Estimate(state, player);
+                            var score = estimator.Estimate(state, player, randomPath.startLen);
                             if (score > bestScore || score > bestScore - 1e-6 && randomPath.len < bestLen)
                             {
                                 bestScore = score;
                                 bestDir = dir;
                                 bestLen = randomPath.len;
+                                bestPath = paths[player].Print();
                                 Logger.Debug($"Score: {bestScore}; Path: {randomPath.Print(state, player)}");
                                 if (Logger.IsEnabled(Logger.Level.Debug))
                                 {
@@ -178,7 +180,7 @@ namespace Game.Strategies
                 return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
             }
 
-            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestScore: {bestScore}"};
+            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}"};
         }
 
         private bool TryGotoStart(FastState state, int player, out RequestOutput result)
