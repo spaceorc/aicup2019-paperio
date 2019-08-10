@@ -28,10 +28,22 @@ namespace Game.AlterStaregy
             
             var score = state.players[player].score;
             
+            var otherScore = 0;
+            var otherMaxScore = 0;
+            for (int i = 0; i < state.players.Length; i++)
+            {
+                if (i != player)
+                {
+                    otherScore += state.players[i].score;
+                    if (state.players[i].score > otherMaxScore)
+                        otherMaxScore = state.players[i].score;
+                }
+            }
+            
             if (state.time < Env.MAX_TICK_COUNT - 100)
                 score += nitroScoreBonus - slowScorePenalty;
             
-            return baseScore + score;
+            return baseScore + 1000.0 * score - otherScore - 3.0 * otherMaxScore;
         }
     }
 }

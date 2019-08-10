@@ -7,17 +7,22 @@ namespace Game.AlterStaregy
     public class Minimax
     {
         private readonly IMinimaxEstimator estimator;
-        private int estimations;
-        private double bestScore;
-        private int bestDepth;
-        private Direction bestAction;
+        private readonly int maxDepth;
 
-        public Minimax(IMinimaxEstimator estimator)
+        public int estimations;
+        public double bestScore;
+        public int bestDepth;
+        public Direction bestAction;
+        public Direction[] commands;
+
+        public Minimax(IMinimaxEstimator estimator, int maxDepth)
         {
             this.estimator = estimator;
+            this.maxDepth = maxDepth;
+            commands = new Direction[6 * maxDepth];
         }
 
-        public void Alphabeta(TimeManager timeManager, FastState state, int player)
+        public void Alphabeta(ITimeManager timeManager, FastState state, int player)
         {
             bestScore = double.MinValue;
             bestDepth = 0;
@@ -25,10 +30,10 @@ namespace Game.AlterStaregy
             bestAction = default(Direction);
 
             var depth = 1;
-            while (!timeManager.IsExpired && depth < 100)
+            while (!timeManager.IsExpired && depth <= maxDepth)
             {
                 Direction action;
-                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, out action);
+                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, out action, 0);
                 if (double.IsNegativeInfinity(score))
                     break;
                 bestScore = score;
@@ -38,9 +43,18 @@ namespace Game.AlterStaregy
             }
         }
 
-        private double Alphabeta(TimeManager timeManager, FastState state, int player, int depth, int activePlayer, double a, double b, out Direction bestAction)
+        private double Alphabeta(
+            ITimeManager timeManager,
+            FastState state,
+            int player,
+            int depth,
+            int activePlayer,
+            double a,
+            double b,
+            out Direction resultAction,
+            int commandsStart)
         {
-            bestAction = default(Direction);
+            resultAction = default(Direction);
             if (timeManager.IsExpired)
                 return double.NegativeInfinity;
 
@@ -52,9 +66,9 @@ namespace Game.AlterStaregy
                 {
                     for (int p = activePlayer; p < state.players.Length; p++)
                     {
-                        if (p == player 
+                        if (p == player
                             || state.players[p].arriveTime != 0
-                            || state.players[p].status == PlayerStatus.Eliminated 
+                            || state.players[p].status == PlayerStatus.Eliminated
                             || state.players[p].status == PlayerStatus.Broken)
                             continue;
 
@@ -64,34 +78,34 @@ namespace Game.AlterStaregy
                             var ne = state.NextCoord(state.players[p].arrivePos, action);
                             if (ne != ushort.MaxValue)
                             {
-                                state.commands[p] = action;
+                                commands[commandsStart + p] = action;
                                 if (state.territory[ne] == p)
                                     break;
                             }
                         }
                     }
 
-                    undo = state.NextTurn(null, withUndo: true);
+                    undo = state.NextTurn(commands, withUndo: true, commandsStart: commandsStart);
                 }
 
                 var score = estimator.Estimate(state, player);
                 if (undo != null)
                     state.Undo(undo);
-                
+
                 return score;
             }
 
             var top = state.players[activePlayer].dir == null ? 6 : 5;
-            
+
             for (byte d = 3; d <= top; d++)
             {
-                var action = (Direction)(((byte)state.players[activePlayer].dir.Value + d) % 4);
-                state.commands[activePlayer] = action;
+                var action = (Direction)(((byte)(state.players[activePlayer].dir ?? Direction.Up) + d) % 4);
+                commands[commandsStart + activePlayer] = action;
                 int nextPlayer = activePlayer == player ? 0 : activePlayer + 1;
-                for (nextPlayer = activePlayer + 1; nextPlayer < state.players.Length; nextPlayer++)
+                for (; nextPlayer < state.players.Length; nextPlayer++)
                 {
-                    if (nextPlayer == player 
-                        || state.players[nextPlayer].status == PlayerStatus.Eliminated 
+                    if (nextPlayer == player
+                        || state.players[nextPlayer].status == PlayerStatus.Eliminated
                         || state.players[nextPlayer].status == PlayerStatus.Broken)
                         continue;
                     break;
@@ -100,15 +114,19 @@ namespace Game.AlterStaregy
                 UndoData undo = null;
                 if (nextPlayer == state.players.Length)
                 {
-                    undo = state.NextTurn(null, withUndo: true);
+                    undo = state.NextTurn(commands, withUndo: true, commandsStart:commandsStart);
                     nextPlayer = player;
+                    commandsStart += 6;
                 }
 
-                var score = Alphabeta(timeManager, state, player, depth + 1, nextPlayer, a, b, out _);
-                
+                var score = Alphabeta(timeManager, state, player, depth - 1, nextPlayer, a, b, out _, commandsStart);
+
                 if (undo != null)
+                {
                     state.Undo(undo);
-                
+                    commandsStart -= 6;
+                }
+
                 if (double.IsNegativeInfinity(score))
                     return double.NegativeInfinity;
 
@@ -117,7 +135,7 @@ namespace Game.AlterStaregy
                     if (score > a)
                     {
                         a = score;
-                        bestAction = action;
+                        resultAction = action;
                     }
                 }
                 else
@@ -125,7 +143,7 @@ namespace Game.AlterStaregy
                     if (score < b)
                     {
                         b = score;
-                        bestAction = action;
+                        resultAction = action;
                     }
                 }
 
