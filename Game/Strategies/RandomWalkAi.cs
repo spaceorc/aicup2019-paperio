@@ -116,7 +116,7 @@ namespace Game.Strategies
                                 bestDir = dir;
                                 bestLen = randomPath.len;
                                 bestPath = paths[player].Print();
-                                Logger.Debug($"Score: {bestScore}; Path: {randomPath.Print(state, player)}");
+                                Logger.Debug($"Score: {bestScore}; Path: {bestPath}");
                                 if (Logger.IsEnabled(Logger.Level.Debug))
                                 {
                                     for (int i = 0; i < paths.Length; i++)
