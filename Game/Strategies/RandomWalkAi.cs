@@ -69,10 +69,10 @@ namespace Game.Strategies
                         }
                         else
                         {
-                            if (state.players[i].status != PlayerStatus.Eliminated)
-                                paths[i].BuildPath(state, distanceMap, i, distanceMap.nearestOwned[i]);
-                            else
+                            if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
                                 paths[i].Clear();
+                            else
+                                paths[i].BuildPath(state, distanceMap, i, distanceMap.nearestOwned[i]);
                         }
                     }
 
@@ -80,7 +80,7 @@ namespace Game.Strategies
                     {
                         for (int i = 0; i < state.players.Length; i++)
                         {
-                            if (state.players[i].status == PlayerStatus.Eliminated)
+                            if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
                                 continue;
                             if (state.players[i].arriveTime != 0)
                                 continue;

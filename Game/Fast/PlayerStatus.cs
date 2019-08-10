@@ -4,6 +4,7 @@ namespace Game.Fast
     {
         Active,
         Loser,
-        Eliminated
+        Eliminated,
+        Broken
     }
 }

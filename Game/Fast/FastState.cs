@@ -26,6 +26,7 @@ namespace Game.Fast
         public FastBonus[] bonuses;
 
         public FastPlayer[] players;
+        public Direction[] commands;
 
         public FastTerritoryCapture capture = new FastTerritoryCapture();
 
@@ -72,7 +73,7 @@ namespace Game.Fast
         {
             return (ushort)(v.X + v.Y * config.x_cells_count);
         }
-        
+
         public V ToV(ushort c)
         {
             return V.Get(c % config.x_cells_count, c / config.x_cells_count);
@@ -88,7 +89,7 @@ namespace Game.Fast
                     for (int x = 0; x < config.x_cells_count; x++)
                     {
                         var c = (ushort)(y * config.x_cells_count + x);
-                        
+
                         int player = -1;
                         for (int p = 0; p < players.Length; p++)
                         {
@@ -107,8 +108,8 @@ namespace Game.Fast
                                 bonus = bonuses[b];
                                 break;
                             }
-                                
                         }
+
                         if (bonus?.type == BonusType.N)
                             writer.Write('N');
                         else if (bonus?.type == BonusType.S)
@@ -121,10 +122,10 @@ namespace Game.Fast
                             writer.Write('x');
                         else if (territory[c] == 0xFF)
                             writer.Write('.');
-                        else 
+                        else
                             writer.Write(tc[territory[c]]);
-                        
                     }
+
                     writer.WriteLine();
                 }
 
@@ -132,21 +133,26 @@ namespace Game.Fast
             }
         }
 
-        public void SetInput(Config config, RequestInput input)
+        public void SetInput(Config config, RequestInput input, string my = "i")
         {
             if (players == null)
             {
                 this.config = config;
-                players = new FastPlayer[input.players.Count];
+
+                players = new FastPlayer[6];
 
                 territory = new byte[config.x_cells_count * config.y_cells_count];
                 lines = new byte[config.y_cells_count * config.x_cells_count];
 
-                curPlayer = (1 + input.players.Count) * input.players.Count / 2
-                            - input.players.Sum(x => int.TryParse(x.Key, out var id) ? id : 0)
-                            - 1;
+                if (int.TryParse(my, out curPlayer))
+                    curPlayer--;
+                else
+                    curPlayer = (1 + input.players.Count) * input.players.Count / 2
+                                - input.players.Sum(x => int.TryParse(x.Key, out var id) ? id : 0)
+                                - 1;
 
-                undos = new UndoDataPool(input.players.Count, config);
+                undos = new UndoDataPool(players.Length, config);
+                commands = new Direction[players.Length];
             }
 
             isGameOver = false;
@@ -164,7 +170,7 @@ namespace Game.Fast
 
             for (var i = 0; i < players.Length; i++)
             {
-                var key = i == curPlayer ? "i" : (i + 1).ToString();
+                var key = i == curPlayer ? my : (i + 1).ToString();
 
                 if (players[i] == null)
                 {
@@ -198,15 +204,19 @@ namespace Game.Fast
                     if (arriveTime == 0)
                         players[i].pos = players[i].arrivePos;
                     else
-                        players[i].pos = NextCoord(players[i].arrivePos, (Direction)(((int)(playerData.direction ?? throw new InvalidOperationException()) + 2)%4));
+                        players[i].pos = NextCoord(players[i].arrivePos, (Direction)(((int)(playerData.direction ?? throw new InvalidOperationException()) + 2) % 4));
 
-                    players[i].status = PlayerStatus.Active;
+                    players[i].status = playerData.direction == null && i != curPlayer
+                        ? PlayerStatus.Broken
+                        : PlayerStatus.Active;
+
                     players[i].dir = playerData.direction;
                     players[i].score = playerData.score;
                     players[i].shiftTime = accel == 0 ? config.ticksPerRequest
                         : accel == -1 ? config.slowTicksPerRequest
                         : accel == 1 ? config.nitroTicksPerRequest
                         : throw new InvalidOperationException();
+
                     players[i].arriveTime = arriveTime;
                     players[i].slowLeft = playerData.bonuses.FirstOrDefault(b => b.type == BonusType.S)?.ticks ?? 0;
                     players[i].nitroLeft = playerData.bonuses.FirstOrDefault(b => b.type == BonusType.N)?.ticks ?? 0;
@@ -264,9 +274,11 @@ namespace Game.Fast
                 undo.Before(this);
             }
 
+            if (commands == null)
+                commands = this.commands;
             for (int i = 0; i < players.Length; i++)
             {
-                if (players[i].status == PlayerStatus.Eliminated)
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
 
                 if (players[i].arriveTime == 0)
@@ -291,7 +303,7 @@ namespace Game.Fast
             capture.Clear();
             for (int i = 0; i < players.Length; i++)
             {
-                if (players[i].status == PlayerStatus.Eliminated)
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
 
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
@@ -318,7 +330,7 @@ namespace Game.Fast
 
             for (int i = 0; i < players.Length; i++)
             {
-                if (players[i].status == PlayerStatus.Eliminated)
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
 
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
@@ -478,7 +490,7 @@ namespace Game.Fast
             }
 
             capture.ApplyTo(this);
-            
+
             MoveDone();
 
             playersLeft = 0;
@@ -490,6 +502,7 @@ namespace Game.Fast
                         players[i].status = PlayerStatus.Eliminated;
                         break;
                     case PlayerStatus.Active:
+                    case PlayerStatus.Broken:
                         playersLeft++;
                         players[i].score += players[i].tickScore;
                         break;
@@ -510,7 +523,7 @@ namespace Game.Fast
             var minArriveTime = int.MaxValue;
             for (var i = 0; i < players.Length; i++)
             {
-                if (players[i].status == PlayerStatus.Eliminated)
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
 
                 if (players[i].dir != null)

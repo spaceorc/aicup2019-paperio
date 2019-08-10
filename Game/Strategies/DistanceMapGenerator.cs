@@ -121,7 +121,12 @@ namespace Game.Strategies
             var tail = 0;
 
             var start = state.players[player].arrivePos;
-            var startDir = state.players[player].dir;
+
+            if (state.players[player].status == PlayerStatus.Broken)
+            {
+                times[player, start] = 0;
+                return;
+            }
 
             if (state.players[player].arriveTime != 0 && times[player, start] == -1)
                 return;
@@ -138,6 +143,7 @@ namespace Game.Strategies
 
             queue[head++] = start;
             times[player, start] = state.players[player].arriveTime;
+            var startDir = state.players[player].dir;
             while (head != tail)
             {
                 var cur = queue[tail];
