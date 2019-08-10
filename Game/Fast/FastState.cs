@@ -26,7 +26,6 @@ namespace Game.Fast
         public FastBonus[] bonuses;
 
         public FastPlayer[] players;
-        public Direction[] commands;
 
         public FastTerritoryCapture capture = new FastTerritoryCapture();
 
@@ -79,7 +78,7 @@ namespace Game.Fast
             return V.Get(c % config.x_cells_count, c / config.x_cells_count);
         }
 
-        public string Print()
+        public string Print(bool territoryOnly = false)
         {
             const string tc = "ABCDEF";
             using (var writer = new StringWriter())
@@ -100,6 +99,16 @@ namespace Game.Fast
                             }
                         }
 
+                        var tomb = false;
+                        for (int p = 0; p < players.Length; p++)
+                        {
+                            if (players[p].status == PlayerStatus.Eliminated && (players[p].pos == c || players[p].arrivePos == c))
+                            {
+                                tomb = true;
+                                break;
+                            }
+                        }
+
                         FastBonus bonus = null;
                         for (int b = 0; b < bonusCount; b++)
                         {
@@ -110,20 +119,32 @@ namespace Game.Fast
                             }
                         }
 
-                        if (bonus?.type == BonusType.N)
-                            writer.Write('N');
-                        else if (bonus?.type == BonusType.S)
-                            writer.Write('S');
-                        else if (bonus?.type == BonusType.Saw)
-                            writer.Write('W');
-                        else if (player != -1)
-                            writer.Write(player);
-                        else if (lines[c] != 0)
-                            writer.Write('x');
-                        else if (territory[c] == 0xFF)
-                            writer.Write('.');
+                        if (territoryOnly)
+                        {
+                            if (territory[c] == 0xFF)
+                                writer.Write('.');
+                            else
+                                writer.Write(tc[territory[c]]);
+                        }
                         else
-                            writer.Write(tc[territory[c]]);
+                        {
+                            if (bonus?.type == BonusType.N)
+                                writer.Write('N');
+                            else if (bonus?.type == BonusType.S)
+                                writer.Write('S');
+                            else if (bonus?.type == BonusType.Saw)
+                                writer.Write('W');
+                            else if (player != -1)
+                                writer.Write(player);
+                            else if (tomb)
+                                writer.Write('*');
+                            else if (lines[c] != 0)
+                                writer.Write('x');
+                            else if (territory[c] == 0xFF)
+                                writer.Write('.');
+                            else
+                                writer.Write(tc[territory[c]]);
+                        }
                     }
 
                     writer.WriteLine();
@@ -152,7 +173,6 @@ namespace Game.Fast
                                 - 1;
 
                 undos = new UndoDataPool(players.Length, config);
-                commands = new Direction[players.Length];
             }
 
             isGameOver = false;
@@ -265,7 +285,7 @@ namespace Game.Fast
             undos.Return(undo);
         }
 
-        public UndoData NextTurn(Direction[] commands, bool withUndo)
+        public UndoData NextTurn(Direction[] commands, bool withUndo, int commandsStart = 0)
         {
             UndoData undo = null;
             if (withUndo)
@@ -273,16 +293,24 @@ namespace Game.Fast
                 undo = undos.Get();
                 undo.Before(this);
             }
-
-            if (commands == null)
-                commands = this.commands;
+            
             for (int i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
 
                 if (players[i].arriveTime == 0)
-                    players[i].dir = commands[i];
+                {
+#if DEBUG
+                    if (players[i].dir != null)
+                    {
+                        if ((Direction)(((int)players[i].dir.Value + 2)%4) == commands[commandsStart + i])
+                            throw new InvalidOperationException($"Bad command: {commands[commandsStart + i]}");
+                    }
+#endif
+                    
+                    players[i].dir = commands[commandsStart + i];
+                }
             }
 
             var timeDelta = RenewArriveTime();
@@ -417,6 +445,7 @@ namespace Game.Fast
                                                     if (territory[pos] == k)
                                                     {
                                                         players[k].territory--;
+                                                        undo?.NotifyCapture(this);
                                                         territory[pos] = 0xFF;
                                                         territoryVersion++;
                                                     }
@@ -433,6 +462,7 @@ namespace Game.Fast
                                                     if (territory[pos] == k)
                                                     {
                                                         players[k].territory--;
+                                                        undo?.NotifyCapture(this);
                                                         territory[pos] = 0xFF;
                                                         territoryVersion++;
                                                     }
@@ -453,6 +483,7 @@ namespace Game.Fast
                                                 if (territory[pos] == k)
                                                 {
                                                     players[k].territory--;
+                                                    undo?.NotifyCapture(this);
                                                     territory[pos] = 0xFF;
                                                     territoryVersion++;
                                                 }
@@ -467,6 +498,7 @@ namespace Game.Fast
                                                 if (territory[pos] == k)
                                                 {
                                                     players[k].territory--;
+                                                    undo?.NotifyCapture(this);
                                                     territory[pos] = 0xFF;
                                                     territoryVersion++;
                                                 }
@@ -489,7 +521,7 @@ namespace Game.Fast
                 }
             }
 
-            capture.ApplyTo(this);
+            capture.ApplyTo(this, undo);
 
             MoveDone();
 

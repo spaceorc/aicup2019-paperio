@@ -101,7 +101,7 @@ namespace Game.Fast
             }
         }
 
-        public void ApplyTo(FastState state)
+        public void ApplyTo(FastState state, UndoData undo)
         {
             for (int player = 0; player < territoryCaptureCount.Length; player++)
             {
@@ -125,6 +125,8 @@ namespace Game.Fast
                             }
 
                             state.players[player].territory++;
+                            undo?.NotifyCapture(state);
+                            
                             state.territory[v] = (byte)player;
                             state.territoryVersion++;
                         }

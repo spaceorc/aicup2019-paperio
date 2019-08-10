@@ -64,8 +64,11 @@ namespace Game.Fast
         {
             if (lineCount > 0 || state.territory[arrivePos] != player)
             {
-                line[lineCount++] = arrivePos;
-                state.lines[arrivePos] = (byte)(state.lines[arrivePos] | (1 << player));
+                if ((state.lines[arrivePos] & (1 << player)) == 0)
+                {
+                    line[lineCount++] = arrivePos;
+                    state.lines[arrivePos] = (byte)(state.lines[arrivePos] | (1 << player));
+                }
             }
         }
 

@@ -14,7 +14,6 @@ namespace Game.Fast
         public byte killedBy;
 
         public int score;
-        public int tickScore;
         public int nitroLeft;
         public int slowLeft;
         public int territory;
@@ -38,7 +37,6 @@ namespace Game.Fast
             arriveTime = player.arriveTime;
             shiftTime = player.shiftTime;
             score = player.score;
-            tickScore = player.tickScore;
             nitroLeft = player.nitroLeft;
             slowLeft = player.slowLeft;
             territory = player.territory;
@@ -66,7 +64,6 @@ namespace Game.Fast
             player.arriveTime = arriveTime;
             player.shiftTime = shiftTime;
             player.score = score;
-            player.tickScore = tickScore;
             player.nitroLeft = nitroLeft;
             player.slowLeft = slowLeft;
             player.territory = territory;
