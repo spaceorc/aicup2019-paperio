@@ -72,26 +72,14 @@ namespace Game.Fast
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int EatenBy(ushort v)
+        public int EatenBy(ushort v, int player)
         {
             var mask = territoryCaptureMask[v];
             if ((mask & ~0xFF) != gen)
-                return -1;
+                return 0;
 
             mask &= 0xFF;
-            if (mask == 0)
-                return -1;
-
-            if ((mask & (mask - 1)) != 0)
-                return -1;
-
-            for (int i = 0; i < territoryCaptureCount.Length; i++)
-            {
-                if (mask == 1 << i)
-                    return i;
-            }
-
-            return -1;
+            return mask & ~(1 << player);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

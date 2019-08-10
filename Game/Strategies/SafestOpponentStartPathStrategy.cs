@@ -62,7 +62,7 @@ namespace Game.Strategies
                 if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (distanceMap.times[other, target] < minTime)
+                if (distanceMap.times[other, target] != -1 && distanceMap.times[other, target] < minTime)
                     minTime = distanceMap.times[other, target];
             }
 

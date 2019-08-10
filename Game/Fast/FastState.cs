@@ -558,24 +558,24 @@ namespace Game.Fast
         {
             for (int i = 0; i < players.Length; i++)
             {
-                if (players[i].status != PlayerStatus.Active)
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Loser)
                     continue;
 
-                var prevPosEatenBy = capture.EatenBy(players[i].pos);
-                if (prevPosEatenBy != -1 && prevPosEatenBy != i)
+                var prevPosEatenBy = capture.EatenBy(players[i].pos, i);
+                if (prevPosEatenBy != 0)
                 {
                     if (players[i].arriveTime != 0)
                     {
                         players[i].status = PlayerStatus.Loser;
-                        players[i].killedBy = (byte)(players[i].killedBy | (1 << prevPosEatenBy));
+                        players[i].killedBy = (byte)(players[i].killedBy | prevPosEatenBy);
                     }
                     else
                     {
-                        var eatenBy = capture.EatenBy(players[i].arrivePos);
-                        if (eatenBy == prevPosEatenBy)
+                        var eatenBy = capture.EatenBy(players[i].arrivePos, i);
+                        if ((eatenBy & prevPosEatenBy) != 0)
                         {
                             players[i].status = PlayerStatus.Loser;
-                            players[i].killedBy = (byte)(players[i].killedBy | (1 << eatenBy));
+                            players[i].killedBy = (byte)(players[i].killedBy | (eatenBy & prevPosEatenBy));
                         }
                     }
                 }
