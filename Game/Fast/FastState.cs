@@ -293,7 +293,7 @@ namespace Game.Fast
                 undo = undos.Get();
                 undo.Before(this);
             }
-            
+
             for (int i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
@@ -304,11 +304,11 @@ namespace Game.Fast
 #if DEBUG
                     if (players[i].dir != null)
                     {
-                        if ((Direction)(((int)players[i].dir.Value + 2)%4) == commands[commandsStart + i])
+                        if ((Direction)(((int)players[i].dir.Value + 2) % 4) == commands[commandsStart + i])
                             throw new InvalidOperationException($"Bad command: {commands[commandsStart + i]}");
                     }
 #endif
-                    
+
                     players[i].dir = commands[commandsStart + i];
                 }
             }
@@ -326,6 +326,8 @@ namespace Game.Fast
             }
 
             Move(timeDelta);
+
+            CheckIntermediateCollisions();
 
             // Main
             capture.Clear();
@@ -699,8 +701,8 @@ namespace Game.Fast
                                 collides = true;
                             else
                             {
-                                var distArrive1 = config.width / players[i].shiftTime * players[i].arriveTime;
-                                var distArrive2 = config.width / players[k].shiftTime * players[k].arriveTime;
+                                var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                var distArrive2 = players[k].arriveTime * players[i].shiftTime;
                                 collides = distArrive1 < distArrive2;
                             }
                         }
@@ -710,8 +712,8 @@ namespace Game.Fast
                                 collides = true;
                             else
                             {
-                                var distArrive2 = config.width / players[k].shiftTime * players[k].arriveTime;
-                                var distArrive1 = config.width / players[i].shiftTime * players[i].arriveTime;
+                                var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                var distArrive2 = players[k].arriveTime * players[i].shiftTime;
                                 collides = distArrive2 < distArrive1;
                             }
                         }
@@ -728,6 +730,86 @@ namespace Game.Fast
                         if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
                         {
                             players[k].status = PlayerStatus.Loser;
+                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CheckIntermediateCollisions()
+        {
+            for (int i = 0; i < players.Length - 1; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                for (int k = i + 1; k < players.Length; k++)
+                {
+                    if (players[k].status == PlayerStatus.Eliminated)
+                        continue;
+
+                    var collides = false;
+                    if (players[i].arrivePos == players[k].arrivePos)
+                    {
+                        if (players[i].arriveTime == 0)
+                        {
+                            if (players[k].arriveTime == 0)
+                                collides = true;
+                            else if (players[k].shiftTime - players[k].arriveTime > 1)
+                                collides = true;
+                        }
+                        else if (players[k].arriveTime == 0)
+                        {
+                            if (players[i].shiftTime - players[i].arriveTime > 1)
+                                collides = true;
+                        }
+                    }
+                    else
+                    {
+                        if (players[i].arrivePos == players[k].pos)
+                        {
+                            if (players[k].arrivePos == players[i].pos)
+                                collides = true;
+                            else if (players[k].arriveTime > 0 || players[i].shiftTime - players[i].arriveTime > 1)
+                            {
+                                if (players[i].dir != players[k].dir)
+                                    collides = true;
+                                else
+                                {
+                                    var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                    var distArrive2 = players[k].arriveTime * players[i].shiftTime;
+                                    collides = distArrive1 < distArrive2;
+                                }
+                            }
+                        }
+                        else if (players[k].arrivePos == players[i].pos)
+                        {
+                            if (players[i].arriveTime > 0 || players[k].shiftTime - players[k].arriveTime > 1)
+                            {
+                                if (players[i].dir != players[k].dir)
+                                    collides = true;
+                                else
+                                {
+                                    var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                    var distArrive2 = players[k].arriveTime * players[i].shiftTime;
+                                    collides = distArrive2 < distArrive1;
+                                }
+                            }
+                        }
+                    }
+
+                    if (collides)
+                    {
+                        if (players[i].lineCount >= players[k].lineCount)
+                        {
+                            players[i].status = PlayerStatus.Eliminated;
+                            players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
+                        }
+
+                        if (players[k].lineCount >= players[i].lineCount)
+                        {
+                            players[k].status = PlayerStatus.Eliminated;
                             players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
                         }
                     }
