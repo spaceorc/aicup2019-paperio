@@ -5,6 +5,8 @@ using Game.Protocol;
 
 namespace Game.Unsafe
 {
+    // todo разобраться с умиранием - чистить территорию не хочется, но тогда надо это как-то учесть
+    // надо для каждого игрока просто запоминать что в его arrivePos ПОСЛЕ ПРИМЕНЕНИЯ КОМАНДЫ!!!
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public unsafe struct UnsafeState
     {
