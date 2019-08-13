@@ -2,7 +2,7 @@ using Game.Fast;
 using Game.Helpers;
 using Game.Types;
 
-namespace Game.AlterStaregy
+namespace Game.BruteForce
 {
     public class Minimax
     {

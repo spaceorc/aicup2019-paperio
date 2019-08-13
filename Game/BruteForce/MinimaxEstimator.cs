@@ -1,7 +1,7 @@
 using Game.Fast;
 using Game.Protocol;
 
-namespace Game.AlterStaregy
+namespace Game.BruteForce
 {
     public class MinimaxEstimator : IMinimaxEstimator
     {

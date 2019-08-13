@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
-using Game.AlterStaregy;
-using Game.Fast;
+using Game.BruteForce;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
@@ -36,10 +35,10 @@ namespace Game
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
                     IAi ai;
-                    if (args.ElementAtOrDefault(0) == "prev")
+                    // if (args.ElementAtOrDefault(0) == "prev")
                         ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), walkOnTerritory: true);
-                    else
-                        ai = new MinimaxAi(1000);
+                    // else
+                    //     ai = new MinimaxAi(1000);
 
                     strategy = new Strategy(readResult.Config, ai);
                     continue;

@@ -4,7 +4,7 @@ using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
 
-namespace Game.AlterStaregy
+namespace Game.BruteForce
 {
     public class MinimaxAi : IAi
     {

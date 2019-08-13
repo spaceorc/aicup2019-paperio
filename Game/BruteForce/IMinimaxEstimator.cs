@@ -1,6 +1,6 @@
 using Game.Fast;
 
-namespace Game.AlterStaregy
+namespace Game.BruteForce
 {
     public interface IMinimaxEstimator
     {

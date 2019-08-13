@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using BrutalTester.Sim;
-using Game.AlterStaregy;
+using Game.BruteForce;
 using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
