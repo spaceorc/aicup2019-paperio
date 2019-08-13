@@ -5,8 +5,6 @@ using Game.Protocol;
 
 namespace Game.Unsafe
 {
-    // todo разобраться с умиранием - чистить территорию не хочется, но тогда надо это как-то учесть
-    // надо для каждого игрока просто запоминать что в его arrivePos ПОСЛЕ ПРИМЕНЕНИЯ КОМАНДЫ!!!
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public unsafe struct UnsafeState
     {
@@ -48,6 +46,9 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var timeDelta = RenewArriveTime();
+                
+                if (undo != null)
+                    undo->AfterCommands(that);
 
                 that->time = (ushort)(that->time + timeDelta);
                 if (that->time > Env.MAX_TICK_COUNT)
@@ -415,7 +416,7 @@ namespace Game.Unsafe
                                 }
 
                                 if (undo != null)
-                                    undo->BonusCaptured(bonusPos, bonus);
+                                    undo->BeforeTerritoryLocalChange(that, bonusPos);
                                 that->territory[bonusPos] = (byte)(that->territory[bonusPos] & ~TERRITORY_BONUS_MASK);
                             }
                         }

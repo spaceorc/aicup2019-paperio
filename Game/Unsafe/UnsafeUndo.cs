@@ -9,21 +9,21 @@ namespace Game.Unsafe
         public byte mask;
         public ushort time;
         public fixed byte players[6 * UnsafePlayer.Size];
+        public fixed byte prevTerritory[9];
+        public fixed ushort prevTerritoryPos[9];
+        public byte prevTerritoryCount;
         public fixed byte territory[31 * 31];
-        public byte bonusUndoCount;
-        public fixed byte bonusTypes[3];
-        public fixed ushort bonusPositions[3];
         public byte territoryChanged;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Before(UnsafeState* state)
+        public void BeforeCommands(UnsafeState* state)
         {
             fixed (UnsafeUndo* that = &this)
             {
                 that->territoryChanged = 0;
                 that->time = state->time;
                 that->mask = state->mask;
-                that->bonusUndoCount = 0;
+                that->prevTerritoryCount = 0;
                 var p = (UnsafePlayer*)state->players;
                 var pu = (UnsafePlayer*)that->players;
                 for (int i = 0; i < 6; i++, p++, pu++)
@@ -37,12 +37,29 @@ namespace Game.Unsafe
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BonusCaptured(ushort pos, byte bonus)
+        public void AfterCommands(UnsafeState* state)
         {
             fixed (UnsafeUndo* that = &this)
             {
-                that->bonusTypes[that->bonusUndoCount] = bonus;
-                that->bonusPositions[that->bonusUndoCount++] = pos;
+                var p = (UnsafePlayer*)state->players;
+                for (int i = 0; i < 6; i++, p++)
+                {
+                    if (p->status != UnsafePlayer.STATUS_ELIMINATED && p->arrivePos != ushort.MaxValue)
+                    {
+                        that->prevTerritory[that->prevTerritoryCount] = state->territory[p->arrivePos];
+                        that->prevTerritoryPos[that->prevTerritoryCount++] = p->arrivePos;
+                    }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void BeforeTerritoryLocalChange(UnsafeState* state, ushort pos)
+        {
+            fixed (UnsafeUndo* that = &this)
+            {
+                that->prevTerritory[that->prevTerritoryCount] = state->territory[pos];
+                that->prevTerritoryPos[that->prevTerritoryCount++] = pos;
             }
         }
 
@@ -73,10 +90,6 @@ namespace Game.Unsafe
                 {
                     if (pu->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
-
-                    if (territoryChanged == 0 && pu->lineCount == p->lineCount - 1)
-                        state->territory[p->arrivePos] = (byte)(state->territory[p->arrivePos] | UnsafeState.TERRITORY_LINE_NO);
-
                     *p = *pu;
                 }
 
@@ -90,8 +103,8 @@ namespace Game.Unsafe
                 }
                 else
                 {
-                    for (int b = 0; b < that->bonusUndoCount; b++)
-                        state->territory[that->bonusPositions[b]] = (byte)(state->territory[that->bonusPositions[b]] | that->bonusTypes[b]);
+                    for (int pt = 0; pt < that->prevTerritoryCount; pt++)
+                        state->territory[that->prevTerritoryPos[pt]] = that->prevTerritory[pt];
                 }
 
                 state->time = that->time;
