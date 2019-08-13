@@ -23,5 +23,9 @@ namespace Game.Protocol
 
         public const int WINDOW_WIDTH = WIDTH * X_CELLS_COUNT;
         public const int WINDOW_HEIGHT = WIDTH * Y_CELLS_COUNT;
+
+        public const int TICKS_PER_REQUEST = 6;
+        public const int NITRO_TICKS_PER_REQUEST = 5;
+        public const int SLOW_TICKS_PER_REQUEST = 10;
     }
 }

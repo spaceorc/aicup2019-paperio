@@ -1,12 +1,14 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Game.Protocol;
 
 namespace Game.Unsafe
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public unsafe struct UnsafePlayer
     {
-        public const int Size = 17;
+        public const int Size = 21;
 
         static UnsafePlayer()
         {
@@ -38,9 +40,42 @@ namespace Game.Unsafe
         public ushort score; // 2
         public byte nitroLeft; // 1
         public byte slowLeft; // 1
+        
+        public byte nitrosCollected; // 1
+        public byte slowsCollected; // 1
+        public ushort opponentTerritoryCaptured; // 2
 
         public ushort territory; // 2
 
         public ushort lineCount; // 2
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void TickAction()
+        {
+            if (slowLeft > 0)
+                slowLeft--;
+            if (nitroLeft > 0)
+                nitroLeft--;
+            UpdateShiftTime();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void UpdateShiftTime()
+        {
+            shiftTime = GetShiftTime(nitroLeft, slowLeft);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte GetShiftTime(int nitroLeft, int slowLeft)
+        {
+            if (slowLeft > 0 && nitroLeft > 0)
+                return Env.TICKS_PER_REQUEST;
+            if (slowLeft > 0)
+                return Env.SLOW_TICKS_PER_REQUEST;
+            if (nitroLeft > 0)
+                return Env.NITRO_TICKS_PER_REQUEST;
+            return Env.TICKS_PER_REQUEST;
+        }
+
     }
 }

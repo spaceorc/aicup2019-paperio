@@ -41,7 +41,7 @@ namespace Game.Unsafe
         public fixed byte players[6 * UnsafePlayer.Size]; // 6*17 = 102
         public fixed byte territory[31 * 31]; // 961
 
-        public void NextTurn(UnsafeGame* game, UnsafeCapture* capture)
+        public void NextTurn(UnsafeCapture* capture, UnsafeUndo* undo)
         {
             fixed (UnsafeState* that = &this)
             {
@@ -64,9 +64,17 @@ namespace Game.Unsafe
 
                 Capture(capture, tickScores);
 
-                // CheckLoss();
-                //
-                // CheckIsAte();
+                CheckLoss(tickScores, capture);
+
+                CheckIsAte(capture);
+
+                CaptureBonuses(tickScores, capture, undo);
+
+                capture->ApplyTo(that, tickScores, undo);
+
+                MoveDone();
+
+                Done(tickScores);
             }
         }
 
@@ -98,6 +106,31 @@ namespace Game.Unsafe
                     minArriveTime = 1;
 
                 return minArriveTime;
+            }
+        }
+
+        private void Done(ushort* tickScores)
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                var p = (UnsafePlayer*)that->players;
+                for (int i = 0; i < 6; i++, p++)
+                {
+                    switch (p->status)
+                    {
+                        case UnsafePlayer.STATUS_LOOSER:
+                            p->status = UnsafePlayer.STATUS_ELIMINATED;
+                            that->mask = (byte)(that->mask & ~(1 << i));
+                            break;
+                        case UnsafePlayer.STATUS_ACTIVE:
+                        case UnsafePlayer.STATUS_BROKEN:
+                            p->score += tickScores[i];
+                            break;
+                    }
+                }
+
+                if ((that->mask & MASK_PLAYERS) == 0)
+                    that->mask = (byte)(that->mask | MASK_GAME_OVER);
             }
         }
 
@@ -186,119 +219,329 @@ namespace Game.Unsafe
             }
         }
 
-        // private void CheckLoss(ushort* tickScores)
-        // {
-        //     fixed (UnsafeState* that = &this)
-        //     {
-        //         var p = (UnsafePlayer*)that->players;
-        //         for (int i = 0; i < 6; i++, p++)
-        //         {
-        //             if (p->status == UnsafePlayer.STATUS_ELIMINATED)
-        //                 continue;
-        //             
-        //             if (p->status != UnsafePlayer.STATUS_LOOSER)
-        //             {
-        //                 if (p->territory == 0)
-        //                     p->status = UnsafePlayer.STATUS_LOOSER;
-        //                 else if (p->arrivePos == ushort.MaxValue)
-        //                     p->status = UnsafePlayer.STATUS_LOOSER;
-        //                 else if (p->arriveTime == 0 && that->territory[p->arrivePos] == i << TERRITORY_LINE_SHIFT)
-        //                     p->status = UnsafePlayer.STATUS_LOOSER;
-        //             }
-        //
-        //             var pk = p + 1;
-        //             for (int k = i + 1; k < 6; k++, pk++)
-        //             {
-        //                 if (pk->status == UnsafePlayer.STATUS_ELIMINATED)
-        //                     continue;
-        //
-        //                 if (pk->arriveTime == 0 && pk->arrivePos != ushort.MaxValue && that->territory[pk->arrivePos] == i << TERRITORY_LINE_SHIFT)
-        //                 {
-        //                     p->status = UnsafePlayer.STATUS_LOOSER;
-        //                     p->killedBy = (byte)(p->killedBy | (1 << k));
-        //                     tickScores[k] = (ushort)(tickScores[k] + Env.LINE_KILL_SCORE);
-        //                 }
-        //
-        //                 if (p->arriveTime == 0 && p->arrivePos != ushort.MaxValue && that->territory[p->arrivePos] == k << TERRITORY_LINE_SHIFT)
-        //                 {
-        //                     pk->status = UnsafePlayer.STATUS_LOOSER;
-        //                     pk->killedBy = (byte)(pk->killedBy | (1 << i));
-        //                     tickScores[i] = (ushort)(tickScores[i] + Env.LINE_KILL_SCORE);
-        //                 }
-        //             }
-        //         }
-        //     }
-        //
-        //
-        //     for (int i = 0; i < players.Length; i++)
-        //     {
-        //         if (players[i].status == PlayerStatus.Eliminated)
-        //             continue;
-        //
-        //         if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.territoryCaptureCount[i] == 0)
-        //             players[i].UpdateLines(i, this);
-        //     }
-        //
-        //     for (int i = 0; i < players.Length - 1; i++)
-        //     {
-        //         if (players[i].status == PlayerStatus.Eliminated)
-        //             continue;
-        //
-        //         for (int k = i + 1; k < players.Length; k++)
-        //         {
-        //             if (players[k].status == PlayerStatus.Eliminated)
-        //                 continue;
-        //
-        //             if ((players[i].status == PlayerStatus.Loser || players[i].lineCount < players[k].lineCount)
-        //                 && (players[k].status == PlayerStatus.Loser || players[k].lineCount < players[i].lineCount))
-        //                 continue;
-        //
-        //             var collides = false;
-        //             if (players[i].arrivePos == players[k].arrivePos)
-        //                 collides = true;
-        //             else
-        //             {
-        //                 if (players[i].arrivePos == players[k].pos && players[k].arriveTime > 0)
-        //                 {
-        //                     if (players[i].dir != players[k].dir)
-        //                         collides = true;
-        //                     else
-        //                     {
-        //                         var distArrive1 = players[i].arriveTime * players[k].shiftTime;
-        //                         var distArrive2 = players[k].arriveTime * players[i].shiftTime;
-        //                         collides = distArrive1 < distArrive2;
-        //                     }
-        //                 }
-        //                 else if (players[k].arrivePos == players[i].pos && players[i].arriveTime > 0)
-        //                 {
-        //                     if (players[k].dir != players[i].dir)
-        //                         collides = true;
-        //                     else
-        //                     {
-        //                         var distArrive1 = players[i].arriveTime * players[k].shiftTime;
-        //                         var distArrive2 = players[k].arriveTime * players[i].shiftTime;
-        //                         collides = distArrive2 < distArrive1;
-        //                     }
-        //                 }
-        //             }
-        //
-        //             if (collides)
-        //             {
-        //                 if (players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
-        //                 {
-        //                     players[i].status = PlayerStatus.Loser;
-        //                     players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
-        //                 }
-        //
-        //                 if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
-        //                 {
-        //                     players[k].status = PlayerStatus.Loser;
-        //                     players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        private void CheckIsAte(UnsafeCapture* capture)
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                var p = (UnsafePlayer*)that->players;
+                for (int i = 0; i < 6; i++, p++)
+                {
+                    if (p->status == UnsafePlayer.STATUS_ELIMINATED || p->status == UnsafePlayer.STATUS_LOOSER)
+                        continue;
+
+                    var prevPosEatenBy = capture->EatenBy(p->pos, i);
+                    if (prevPosEatenBy != 0)
+                    {
+                        if (p->arriveTime != 0)
+                        {
+                            p->status = UnsafePlayer.STATUS_LOOSER;
+                            p->killedBy = (byte)(p->killedBy | prevPosEatenBy);
+                        }
+                        else
+                        {
+                            var eatenBy = capture->EatenBy(p->arrivePos, i);
+                            if ((eatenBy & prevPosEatenBy) != 0)
+                            {
+                                p->status = UnsafePlayer.STATUS_LOOSER;
+                                p->killedBy = (byte)(p->killedBy | (eatenBy & prevPosEatenBy));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CaptureBonuses(ushort* tickScores, UnsafeCapture* capture, UnsafeUndo* undo)
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                var p = (UnsafePlayer*)that->players;
+                for (int i = 0; i < 6; i++, p++)
+                {
+                    if (p->status == UnsafePlayer.STATUS_ELIMINATED || p->status == UnsafePlayer.STATUS_BROKEN)
+                        continue;
+
+                    if (p->arriveTime == 0 && p->arrivePos != ushort.MaxValue)
+                    {
+                        p->TickAction();
+
+                        for (int b = 0; b < capture->capturedBonusesCount; b++)
+                        {
+                            var bonusPos = capture->capturedBonusesAt[b];
+                            if (bonusPos == p->arrivePos || capture->BelongsTo(bonusPos, i))
+                            {
+                                var bonus = (byte)(that->territory[bonusPos] & TERRITORY_BONUS_MASK);
+                                if (bonus == TERRITORY_BONUS_NITRO)
+                                {
+                                    var bonusTime = i == 0 ? 10 : 50;
+                                    if (p->nitroLeft > 0)
+                                        p->nitroLeft = (byte)(p->nitroLeft + bonusTime);
+                                    else
+                                        p->nitroLeft = (byte)bonusTime;
+                                    p->UpdateShiftTime();
+                                    p->nitrosCollected++;
+                                }
+                                else if (bonus == TERRITORY_BONUS_SLOW)
+                                {
+                                    var bonusTime = i == 0 ? 50 : 10;
+                                    if (p->slowLeft > 0)
+                                        p->slowLeft = (byte)(p->slowLeft + bonusTime); // random 10..50
+                                    else
+                                        p->slowLeft = (byte)bonusTime;
+                                    p->UpdateShiftTime();
+                                    p->slowsCollected++;
+                                }
+                                else if (bonus == TERRITORY_BONUS_SAW)
+                                {
+                                    var sawStatus = 0ul;
+                                    var v = p->arrivePos;
+                                    while (true)
+                                    {
+                                        v = NextCoord(v, p->dir);
+                                        if (v == ushort.MaxValue)
+                                            break;
+                                        var ppk = (UnsafePlayer*)that->players;
+                                        for (int k = 0; k < 6; k++, ppk++)
+                                        {
+                                            if (k == i || ppk->status == UnsafePlayer.STATUS_ELIMINATED)
+                                                continue;
+
+                                            if (ppk->arrivePos == v || (ppk->pos == v && ppk->arriveTime > 0))
+                                            {
+                                                sawStatus |= 0xFFul << (k * 8);
+                                                ppk->status = UnsafePlayer.STATUS_LOOSER;
+                                                ppk->killedBy = (byte)(ppk->killedBy | (1 << i));
+                                                tickScores[i] += Env.SAW_KILL_SCORE;
+                                            }
+                                        }
+
+                                        var owner = that->territory[v] & TERRITORY_OWNER_MASK;
+                                        if (owner != TERRITORY_OWNER_NO && owner != i)
+                                        {
+                                            var po = (UnsafePlayer*)that->players + owner;
+                                            if (po->status != UnsafePlayer.STATUS_ELIMINATED)
+                                                sawStatus |= 1ul << (owner * 8);
+                                        }
+                                    }
+
+                                    var pk = (UnsafePlayer*)that->players;
+                                    for (int k = 0; k < 6; k++, pk++)
+                                    {
+                                        if (k == i || pk->status == UnsafePlayer.STATUS_ELIMINATED)
+                                            continue;
+
+                                        if (((sawStatus >> (k * 8)) & 0xFF) != 1)
+                                            continue;
+
+                                        tickScores[i] += Env.SAW_SCORE;
+                                        var vx = v % 31;
+                                        var vy = v / 31;
+                                        if (p->dir == UnsafePlayer.DIR_UP || p->dir == UnsafePlayer.DIR_DOWN)
+                                        {
+                                            if (pk->arrivePos % 31 < vx)
+                                            {
+                                                int pos = 0;
+                                                for (int y = 0; y < 31; y++)
+                                                {
+                                                    pos += vx;
+                                                    for (int x = vx; x < 31; x++, pos++)
+                                                    {
+                                                        if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
+                                                        {
+                                                            pk->territory--;
+                                                            if (undo != null)
+                                                                undo->BeforeTerritoryChange(that);
+                                                            that->territory[pos] |= TERRITORY_OWNER_NO;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                int pos = 0;
+                                                for (int y = 0; y < 31; y++)
+                                                {
+                                                    for (int x = 0; x <= vx; x++, pos++)
+                                                    {
+                                                        if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
+                                                        {
+                                                            pk->territory--;
+                                                            if (undo != null)
+                                                                undo->BeforeTerritoryChange(that);
+                                                            that->territory[pos] |= TERRITORY_OWNER_NO;
+                                                        }
+                                                    }
+
+                                                    pos += 31 - vx - 1;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (pk->arrivePos / 31 < vy)
+                                            {
+                                                int pos = vy * 31;
+                                                for (int y = vy; y < 31; y++)
+                                                for (int x = 0; x < 31; x++, pos++)
+                                                {
+                                                    if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
+                                                    {
+                                                        pk->territory--;
+                                                        if (undo != null)
+                                                            undo->BeforeTerritoryChange(that);
+                                                        that->territory[pos] |= TERRITORY_OWNER_NO;
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                int pos = 0;
+                                                for (int y = 0; y <= vy; y++)
+                                                for (int x = 0; x < 31; x++, pos++)
+                                                {
+                                                    if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
+                                                    {
+                                                        pk->territory--;
+                                                        if (undo != null)
+                                                            undo->BeforeTerritoryChange(that);
+                                                        that->territory[pos] |= TERRITORY_OWNER_NO;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (undo != null)
+                                    undo->BonusCaptured(bonusPos, bonus);
+                                that->territory[bonusPos] = (byte)(that->territory[bonusPos] & ~TERRITORY_BONUS_MASK);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CheckLoss(ushort* tickScores, UnsafeCapture* capture)
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                var players = (UnsafePlayer*)that->players;
+                var p = players;
+                for (int i = 0; i < 6; i++, p++)
+                {
+                    if (p->status == UnsafePlayer.STATUS_ELIMINATED)
+                        continue;
+
+                    if (p->status != UnsafePlayer.STATUS_LOOSER)
+                    {
+                        if (p->territory == 0)
+                            p->status = UnsafePlayer.STATUS_LOOSER;
+                        else if (p->arrivePos == ushort.MaxValue)
+                            p->status = UnsafePlayer.STATUS_LOOSER;
+                    }
+
+                    if (p->arriveTime == 0)
+                    {
+                        var line = that->territory[p->arrivePos] & TERRITORY_LINE_MASK;
+                        if (line != TERRITORY_LINE_NO)
+                        {
+                            var lineOwner = line >> TERRITORY_LINE_SHIFT;
+                            var pk = players + lineOwner;
+                            if (lineOwner == i)
+                                p->status = UnsafePlayer.STATUS_LOOSER;
+                            else if (pk->status != UnsafePlayer.STATUS_ELIMINATED)
+                            {
+                                pk->status = UnsafePlayer.STATUS_LOOSER;
+                                pk->killedBy = (byte)(pk->killedBy | (1 << i));
+                                tickScores[i] = (ushort)(tickScores[i] + Env.LINE_KILL_SCORE);
+                            }
+                        }
+                    }
+                }
+
+                p = players;
+                for (int i = 0; i < 6; i++, p++)
+                {
+                    if (p->status == UnsafePlayer.STATUS_ELIMINATED)
+                        continue;
+
+                    if (p->arriveTime == 0 && p->arrivePos != ushort.MaxValue && capture->captureCount[i] == 0)
+                    {
+                        if (p->lineCount > 0 || (that->territory[p->arrivePos] & TERRITORY_OWNER_MASK) != i)
+                        {
+                            if ((that->territory[p->arrivePos] & TERRITORY_LINE_MASK) != i << TERRITORY_LINE_SHIFT)
+                            {
+                                that->territory[p->arrivePos] = (byte)(that->territory[p->arrivePos] & ~TERRITORY_LINE_MASK | (i << TERRITORY_LINE_SHIFT));
+                                p->lineCount++;
+                            }
+                        }
+                    }
+                }
+
+                p = players;
+                for (int i = 0; i < 6 - 1; i++, p++)
+                {
+                    if (p->status == UnsafePlayer.STATUS_ELIMINATED)
+                        continue;
+
+                    var pk = p + 1;
+                    for (int k = i + 1; k < 6; k++, pk++)
+                    {
+                        if (pk->status == UnsafePlayer.STATUS_ELIMINATED)
+                            continue;
+
+                        if ((p->status == UnsafePlayer.STATUS_LOOSER || p->lineCount < pk->lineCount)
+                            && (pk->status == UnsafePlayer.STATUS_LOOSER || pk->lineCount < p->lineCount))
+                            continue;
+
+                        var collides = false;
+                        if (p->arrivePos == pk->arrivePos)
+                            collides = true;
+                        else
+                        {
+                            if (p->arrivePos == pk->pos && pk->arriveTime > 0)
+                            {
+                                if (p->dir != pk->dir)
+                                    collides = true;
+                                else
+                                {
+                                    var distArrive1 = p->arriveTime * pk->shiftTime;
+                                    var distArrive2 = pk->arriveTime * p->shiftTime;
+                                    collides = distArrive1 < distArrive2;
+                                }
+                            }
+                            else if (pk->arrivePos == p->pos && p->arriveTime > 0)
+                            {
+                                if (pk->dir != p->dir)
+                                    collides = true;
+                                else
+                                {
+                                    var distArrive1 = p->arriveTime * pk->shiftTime;
+                                    var distArrive2 = pk->arriveTime * p->shiftTime;
+                                    collides = distArrive2 < distArrive1;
+                                }
+                            }
+                        }
+
+                        if (collides)
+                        {
+                            if (p->status != UnsafePlayer.STATUS_LOOSER && p->lineCount >= pk->lineCount)
+                            {
+                                p->status = UnsafePlayer.STATUS_LOOSER;
+                                p->killedBy = (byte)(p->killedBy | (1 << k));
+                            }
+
+                            if (pk->status != UnsafePlayer.STATUS_LOOSER && pk->lineCount >= p->lineCount)
+                            {
+                                pk->status = UnsafePlayer.STATUS_LOOSER;
+                                pk->killedBy = (byte)(pk->killedBy | (1 << i));
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         private void Capture(UnsafeCapture* capture, ushort* tickScores)
         {
@@ -339,7 +582,7 @@ namespace Game.Unsafe
             }
         }
 
-        private void MoveDone(byte timeDelta)
+        private void MoveDone()
         {
             fixed (UnsafeState* that = &this)
             {
