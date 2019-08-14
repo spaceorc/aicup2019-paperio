@@ -13,7 +13,7 @@ namespace Game.RandomWalk
     {
         private readonly IStartPathStrategy startPathStrategy;
         private readonly IPathEstimator estimator;
-        private readonly RandomPathGenerator randomPath = new RandomPathGenerator();
+        private readonly RandomPathGenerator randomPath;
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly StateBackup backup = new StateBackup();
         private PathBuilder[] paths;
@@ -23,7 +23,7 @@ namespace Game.RandomWalk
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
-            randomPath.walkOnTerritory = walkOnTerritory;
+            randomPath = new RandomPathGenerator(walkOnTerritory);
         }
 
         public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)

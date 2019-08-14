@@ -23,7 +23,12 @@ namespace Game.RandomWalk
         public int[] dirChances;
         public int dirsCount;
 
-        public bool walkOnTerritory;
+        public readonly bool walkOnTerritory;
+
+        public RandomPathGenerator(bool walkOnTerritory)
+        {
+            this.walkOnTerritory = walkOnTerritory;
+        }
 
         public bool Generate(State state, int player, DistanceMapGenerator distanceMap)
         {
