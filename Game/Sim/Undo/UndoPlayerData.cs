@@ -1,34 +1,32 @@
 using Game.Protocol;
 
-namespace Game.Fast
+namespace Game.Sim.Undo
 {
     public class UndoPlayerData
     {
-        public PlayerStatus status;
-        public ushort pos;
-        public ushort arrivePos;
-        public Direction? dir;
-        public int arriveTime;
-        public int shiftTime;
-        public byte killedBy;
-
-        public int score;
-        public int nitroLeft;
-        public int slowLeft;
-        public int territory;
-        public int nitrosCollected;
-        public int slowsCollected;
-        public int opponentTerritoryCaptured;
-        
-        public int lineCount;
-        public ushort[] line;
+        private PlayerStatus status;
+        private ushort pos;
+        private ushort arrivePos;
+        private Direction? dir;
+        private int arriveTime;
+        private int shiftTime;
+        private byte killedBy;
+        private int score;
+        private int nitroLeft;
+        private int slowLeft;
+        private int territory;
+        private int nitrosCollected;
+        private int slowsCollected;
+        private int opponentTerritoryCaptured;        
+        private int lineCount;
+        private readonly ushort[] line;
 
         public UndoPlayerData()
         {
             line = new ushort[Env.CELLS_COUNT];
         }
 
-        public void Before(FastState state, FastPlayer player)
+        public void Before(Player player)
         {
             status = player.status;
             pos = player.pos;
@@ -47,20 +45,20 @@ namespace Game.Fast
             opponentTerritoryCaptured = player.opponentTerritoryCaptured;
         }
 
-        public void After(FastState state, FastPlayer player)
+        public void After(Player player)
         {
             if (player.lineCount == 0 && lineCount > 0)
             {
-                for (int i = 0; i < lineCount; i++)
+                for (var i = 0; i < lineCount; i++)
                     line[i] = player.line[i];
             }
         }
 
-        public void Undo(FastState state, FastPlayer player, int p)
+        public void Undo(State state, Player player, int p)
         {
             if (player.lineCount == 0 && lineCount > 0)
             {
-                for (int i = 0; i < lineCount; i++)
+                for (var i = 0; i < lineCount; i++)
                 {
                     player.line[i] = line[i];
                     var lv = line[i];

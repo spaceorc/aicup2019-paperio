@@ -1,19 +1,22 @@
 using System.Runtime.CompilerServices;
 using Game.Protocol;
+using Game.Sim.Undo;
 
-namespace Game.Fast
+namespace Game.Sim
 {
-    public class FastTerritoryCapture
+    public class TerritoryCapture
     {
         private int gen;
-
-        public int[] territoryCaptureMask;
-        public int[] territoryCaptureCount;
-        public ushort[,] territoryCapture;
+        private int[] territoryCaptureMask;
+        private int[] territoryCaptureCount;
+        private ushort[,] territoryCapture;
 
         private int queueGen;
         private ushort[] queue;
         private int[] used;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int CapturedCountBy(int player) => territoryCaptureCount[player];
 
         public void Init(int playerCount)
         {
@@ -28,8 +31,8 @@ namespace Game.Fast
             }
             else
             {
-                for (int x = 0; x < Env.X_CELLS_COUNT; x++)
-                for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
+                for (var x = 0; x < Env.X_CELLS_COUNT; x++)
+                for (var y = 0; y < Env.Y_CELLS_COUNT; y++)
                 {
                     territoryCaptureMask[x + y * Env.X_CELLS_COUNT] = 0;
                     used[x + y * Env.X_CELLS_COUNT] = 0;
@@ -42,7 +45,7 @@ namespace Game.Fast
             }
             else
             {
-                for (int i = 0; i < territoryCaptureCount.Length; i++)
+                for (var i = 0; i < territoryCaptureCount.Length; i++)
                     territoryCaptureCount[i] = 0;
             }
 
@@ -58,7 +61,7 @@ namespace Game.Fast
         public void Clear()
         {
             gen += 1 << 8;
-            for (int i = 0; i < territoryCaptureCount.Length; i++)
+            for (var i = 0; i < territoryCaptureCount.Length; i++)
                 territoryCaptureCount[i] = 0;
         }
 
@@ -71,7 +74,7 @@ namespace Game.Fast
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int EatenBy(ushort v, int player)
+        public int PlayerEatenByMask(ushort v, int player)
         {
             var mask = territoryCaptureMask[v];
             if ((mask & ~0xFF) != gen)
@@ -81,33 +84,14 @@ namespace Game.Fast
             return mask & ~(1 << player);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(ushort v, int player)
+        public void ApplyTo(State state, UndoData undo)
         {
-            var mask = territoryCaptureMask[v];
-            if ((mask & ~0xFF) == gen)
-            {
-                if ((mask & (1 << player)) == 0)
-                {
-                    territoryCaptureMask[v] = mask | (1 << player);
-                    territoryCapture[player, territoryCaptureCount[player]++] = v;
-                }
-            }
-            else
-            {
-                territoryCaptureMask[v] = (1 << player) | gen;
-                territoryCapture[player, territoryCaptureCount[player]++] = v;
-            }
-        }
-
-        public void ApplyTo(FastState state, UndoData undo)
-        {
-            for (int player = 0; player < territoryCaptureCount.Length; player++)
+            for (var player = 0; player < territoryCaptureCount.Length; player++)
             {
                 if (state.players[player].status == PlayerStatus.Eliminated)
                     continue;
 
-                for (int i = 0; i < territoryCaptureCount[player]; i++)
+                for (var i = 0; i < territoryCaptureCount[player]; i++)
                 {
                     var v = territoryCapture[player, i];
                     var mask = territoryCaptureMask[v] & 0xFF;
@@ -125,7 +109,7 @@ namespace Game.Fast
 
                             state.players[player].territory++;
                             undo?.NotifyCapture(state);
-                            
+
                             state.territory[v] = (byte)player;
                             state.territoryVersion++;
                         }
@@ -134,7 +118,7 @@ namespace Game.Fast
             }
         }
 
-        public void Capture(FastState state, int player)
+        public void Capture(State state, int player)
         {
             if (state.players[player].lineCount == 0)
                 return;
@@ -161,7 +145,7 @@ namespace Game.Fast
                 }
             }
 
-            for (int y = 1; y < Env.Y_CELLS_COUNT - 1; y++)
+            for (var y = 1; y < Env.Y_CELLS_COUNT - 1; y++)
             {
                 if (state.territory[y * Env.X_CELLS_COUNT] != player && (state.lines[y * Env.X_CELLS_COUNT] & (1 << player)) == 0)
                 {
@@ -199,6 +183,25 @@ namespace Game.Fast
             {
                 if (used[c] != queueGen && state.territory[c] != player)
                     Add(c, player);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Add(ushort v, int player)
+        {
+            var mask = territoryCaptureMask[v];
+            if ((mask & ~0xFF) == gen)
+            {
+                if ((mask & (1 << player)) == 0)
+                {
+                    territoryCaptureMask[v] = mask | (1 << player);
+                    territoryCapture[player, territoryCaptureCount[player]++] = v;
+                }
+            }
+            else
+            {
+                territoryCaptureMask[v] = (1 << player) | gen;
+                territoryCapture[player, territoryCaptureCount[player]++] = v;
             }
         }
     }

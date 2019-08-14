@@ -1,9 +1,9 @@
-using Game.Fast;
+using Game.Sim;
 
 namespace Game.BruteForce
 {
     public interface IMinimaxEstimator
     {
-        double Estimate(FastState state, int player);
+        double Estimate(State state, int player);
     }
 }

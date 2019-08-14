@@ -1,10 +1,10 @@
-using Game.Fast;
+using Game.Sim;
 
 namespace Game.Strategies
 {
     public interface IEstimator
     {
-        void Before(FastState state, int player);
-        double Estimate(FastState state, int player, int pathStartLen);
+        void Before(State state, int player);
+        double Estimate(State state, int player, int pathStartLen);
     }
 }

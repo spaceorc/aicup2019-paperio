@@ -1,21 +1,21 @@
 using System;
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
     public class SafestOpponentStartPathStrategy : IStartPathStrategy
     {
-        public RequestOutput GotoStart(FastState state, int player, DistanceMapGenerator distanceMap)
+        public RequestOutput GotoStart(State state, int player, DistanceMapGenerator distanceMap)
         {
             var bestTarget = ushort.MaxValue;
-            int bestEstimation = int.MinValue; 
-            int bestTime = int.MaxValue; 
+            var bestEstimation = int.MinValue; 
+            var bestTime = int.MaxValue; 
             for (ushort target = 0; target < Env.CELLS_COUNT; target++)
             {
                 if (state.territory[target] != 0xFF && state.territory[target] != player)
                 {
-                    for (int d = 0; d < 4; d++)
+                    for (var d = 0; d < 4; d++)
                     {
                         var ne = state.NextCoord(target, (Direction)d);
                         if (ne != ushort.MaxValue)
@@ -52,11 +52,11 @@ namespace Game.Strategies
             return null;
         }
 
-        private int Estimate(FastState state, int player, DistanceMapGenerator distanceMap, ushort target)
+        private int Estimate(State state, int player, DistanceMapGenerator distanceMap, ushort target)
         {
             //var gainTime = distanceMap.times[player, target];
             var minTime = int.MaxValue;
-            for (int other = 0; other < state.players.Length; other++)
+            for (var other = 0; other < state.players.Length; other++)
             {
                 if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                     continue;

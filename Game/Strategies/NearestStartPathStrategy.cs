@@ -1,12 +1,12 @@
 using System;
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
     public class NearestStartPathStrategy : IStartPathStrategy
     {
-        public RequestOutput GotoStart(FastState state, int player, DistanceMapGenerator distanceMap)
+        public RequestOutput GotoStart(State state, int player, DistanceMapGenerator distanceMap)
         {
             var empty = distanceMap.nearestEmpty[player];
             if (empty == ushort.MaxValue)

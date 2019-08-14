@@ -1,39 +1,38 @@
 using System;
 using Game.Protocol;
 
-namespace Game.Fast
+namespace Game.Sim.Undo
 {
     public class UndoData
     {
-        public bool isGameOver;
-        
-        public int time;
-        public int bonusCount;
-        public int territoryVersion;
-        public bool captured;
-        public byte[] territory;
-        public UndoPlayerData[] undoPlayerDatas;
+        private bool isGameOver;        
+        private int time;
+        private int bonusCount;
+        private int territoryVersion;
+        private bool captured;
+        private readonly byte[] territory;
+        private readonly UndoPlayerData[] undoPlayerDatas;
 
         public UndoData(int playerCount)
         {
             undoPlayerDatas = new UndoPlayerData[playerCount];
-            for (int i = 0; i < undoPlayerDatas.Length; i++)
+            for (var i = 0; i < undoPlayerDatas.Length; i++)
                 undoPlayerDatas[i] = new UndoPlayerData();
             territory = new byte[Env.CELLS_COUNT];
         }
 
-        public void Before(FastState state)
+        public void Before(State state)
         {
             captured = false;
             time = state.time;
             bonusCount = state.bonusCount;
             territoryVersion = state.territoryVersion;
             isGameOver = state.isGameOver;
-            for (int i = 0; i < state.players.Length; i++)
-                undoPlayerDatas[i].Before(state, state.players[i]);
+            for (var i = 0; i < state.players.Length; i++)
+                undoPlayerDatas[i].Before(state.players[i]);
         }
 
-        public void NotifyCapture(FastState state)
+        public void NotifyCapture(State state)
         {
             if (!captured)
             {
@@ -42,17 +41,17 @@ namespace Game.Fast
             }
         }
 
-        public void After(FastState state)
+        public void After(State state)
         {
-            for (int i = 0; i < state.players.Length; i++)
-                undoPlayerDatas[i].After(state, state.players[i]);
+            for (var i = 0; i < state.players.Length; i++)
+                undoPlayerDatas[i].After(state.players[i]);
         }
 
-        public void Undo(FastState state)
+        public void Undo(State state)
         {
             state.time = time;
             state.isGameOver = isGameOver;
-            for (int i = 0; i < state.players.Length; i++)
+            for (var i = 0; i < state.players.Length; i++)
                 undoPlayerDatas[i].Undo(state, state.players[i], i);
             state.bonusCount = bonusCount;
             if (state.territoryVersion != territoryVersion)

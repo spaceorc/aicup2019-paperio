@@ -99,7 +99,7 @@ namespace Pack
 			fileContent = ReplaceHexConstants(ReplaceBinConstants(fileContent));
 			var orderRegex = new Regex(@"//\s*pack\s*:\s*(?<order>\d+)", RegexOptions.Singleline | RegexOptions.Compiled);
 			var orderMatch = orderRegex.Match(fileContent);
-			int order = int.MaxValue;
+			var order = int.MaxValue;
 			if (orderMatch.Success)
 				order = int.Parse(orderMatch.Groups["order"].Value);
 			var regex = new Regex(@"^(?<using>.*?)(?<header>namespace.*?\n{)", RegexOptions.Singleline | RegexOptions.Compiled);

@@ -1,7 +1,7 @@
 using System;
-using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
+using Game.Sim;
 using Game.Strategies;
 
 namespace Game.BruteForce
@@ -15,7 +15,7 @@ namespace Game.BruteForce
             minimax = new Minimax(new MinimaxEstimator(), maxDepth);
         }
         
-        public RequestOutput GetCommand(FastState state, int player, ITimeManager timeManager, Random random)
+        public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)
         {
             minimax.Alphabeta(timeManager, state, player);
             return new RequestOutput

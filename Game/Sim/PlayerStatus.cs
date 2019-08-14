@@ -1,4 +1,4 @@
-namespace Game.Fast
+namespace Game.Sim
 {
     public enum PlayerStatus
     {

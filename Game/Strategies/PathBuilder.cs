@@ -1,6 +1,6 @@
 using System.Text;
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
@@ -10,7 +10,7 @@ namespace Game.Strategies
         public int len;
         public int originalLen;
 
-        public void BuildPath(FastState state, RandomPathGenerator path, int player)
+        public void BuildPath(State state, RandomPathGenerator path, int player)
         {
             if (dirs == null)
                 dirs = new Direction[Env.CELLS_COUNT];
@@ -18,11 +18,11 @@ namespace Game.Strategies
             len = path.len;
             originalLen = len;
             dirs[len - 1] = state.MakeDir(state.players[player].arrivePos, path.coords[0]);
-            for (int i = 1; i < len; i++)
+            for (var i = 1; i < len; i++)
                 dirs[len - i - 1] = state.MakeDir(path.coords[i - 1], path.coords[i]);
         }
 
-        public void BuildPath(FastState state, DistanceMapGenerator distanceMap, int player, ushort target)
+        public void BuildPath(State state, DistanceMapGenerator distanceMap, int player, ushort target)
         {
             if (dirs == null)
                 dirs = new Direction[Env.CELLS_COUNT];
@@ -45,7 +45,7 @@ namespace Game.Strategies
         public string Print()
         {
             var result = new StringBuilder();
-            for (int i = originalLen - 1; i >= 0; i--)
+            for (var i = originalLen - 1; i >= 0; i--)
                 result.Append(dirs[i].ToString()[0]);
             return result.ToString();
         }

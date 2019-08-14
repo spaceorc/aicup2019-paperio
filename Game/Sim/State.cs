@@ -3,10 +3,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Game.Protocol;
+using Game.Sim.Undo;
 
-namespace Game.Fast
+namespace Game.Sim
 {
-    public class FastState
+    public class State
     {
         public bool isGameOver;
 
@@ -18,11 +19,11 @@ namespace Game.Fast
         public byte[] lines;
 
         public int bonusCount;
-        public FastBonus[] bonuses;
+        public Bonus[] bonuses;
 
-        public FastPlayer[] players;
+        public Player[] players;
 
-        public FastTerritoryCapture capture = new FastTerritoryCapture();
+        public TerritoryCapture capture = new TerritoryCapture();
 
         public UndoDataPool undos;
 
@@ -86,14 +87,14 @@ namespace Game.Fast
                 writer.WriteLine($"slowsCollected: {string.Join(",", players.Select(x => x.slowsCollected))}");
                 writer.WriteLine($"opponentTerritoryCaptured: {string.Join(",", players.Select(x => x.opponentTerritoryCaptured))}");
                 writer.WriteLine($"lineCount: {string.Join(",", players.Select(x => x.lineCount))}");
-                for (int y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
+                for (var y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
                 {
-                    for (int x = 0; x < Env.X_CELLS_COUNT; x++)
+                    for (var x = 0; x < Env.X_CELLS_COUNT; x++)
                     {
                         var c = (ushort)(y * Env.X_CELLS_COUNT + x);
 
-                        int player = -1;
-                        for (int p = 0; p < players.Length; p++)
+                        var player = -1;
+                        for (var p = 0; p < players.Length; p++)
                         {
                             if (players[p].status != PlayerStatus.Eliminated && (players[p].pos == c || players[p].arrivePos == c))
                             {
@@ -103,7 +104,7 @@ namespace Game.Fast
                         }
 
                         var tomb = false;
-                        for (int p = 0; p < players.Length; p++)
+                        for (var p = 0; p < players.Length; p++)
                         {
                             if (players[p].status == PlayerStatus.Eliminated && (players[p].pos == c || players[p].arrivePos == c))
                             {
@@ -112,8 +113,8 @@ namespace Game.Fast
                             }
                         }
 
-                        FastBonus bonus = null;
-                        for (int b = 0; b < bonusCount; b++)
+                        Bonus bonus = null;
+                        for (var b = 0; b < bonusCount; b++)
                         {
                             if (bonuses[b].pos == c)
                             {
@@ -161,7 +162,7 @@ namespace Game.Fast
         {
             if (players == null)
             {
-                players = new FastPlayer[input.players.Count];
+                players = new Player[input.players.Count];
 
                 territory = new byte[Env.CELLS_COUNT];
                 lines = new byte[Env.Y_CELLS_COUNT * Env.X_CELLS_COUNT];
@@ -176,7 +177,7 @@ namespace Game.Fast
             time = input.tick_num;
             playersLeft = input.players.Count;
 
-            for (int c = 0; c < Env.CELLS_COUNT; c++)
+            for (var c = 0; c < Env.CELLS_COUNT; c++)
             {
                 territory[c] = 0xFF;
                 lines[c] = 0;
@@ -190,7 +191,7 @@ namespace Game.Fast
 
                 if (players[i] == null)
                 {
-                    players[i] = new FastPlayer();
+                    players[i] = new Player();
                 }
 
                 if (!input.players.TryGetValue(key, out var playerData))
@@ -259,12 +260,12 @@ namespace Game.Fast
             }
 
             if (bonuses == null || bonuses.Length < input.bonuses.Length)
-                bonuses = new FastBonus[input.bonuses.Length];
+                bonuses = new Bonus[input.bonuses.Length];
 
             bonusCount = 0;
             for (var i = 0; i < input.bonuses.Length; i++)
             {
-                bonuses[bonusCount++] = new FastBonus(this, input.bonuses[i]);
+                bonuses[bonusCount++] = new Bonus(this, input.bonuses[i]);
             }
 
             V GetShift(Direction direction, int d) =>
@@ -290,7 +291,7 @@ namespace Game.Fast
                 undo.Before(this);
             }
 
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
@@ -327,7 +328,7 @@ namespace Game.Fast
 
             // Main
             capture.Clear();
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
@@ -336,16 +337,16 @@ namespace Game.Fast
                 {
                     // Capture
                     capture.Capture(this, i);
-                    if (capture.territoryCaptureCount[i] > 0)
+                    if (capture.CapturedCountBy(i) > 0)
                     {
-                        for (int l = 0; l < players[i].lineCount; l++)
+                        for (var l = 0; l < players[i].lineCount; l++)
                         {
                             var lv = players[i].line[l];
                             lines[lv] = (byte)(lines[lv] & ~(1 << i));
                         }
 
                         players[i].lineCount = 0;
-                        players[i].tickScore += Env.NEUTRAL_TERRITORY_SCORE * capture.territoryCaptureCount[i];
+                        players[i].tickScore += Env.NEUTRAL_TERRITORY_SCORE * capture.CapturedCountBy(i);
                     }
                 }
             }
@@ -354,7 +355,7 @@ namespace Game.Fast
 
             CheckIsAte();
 
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
                     continue;
@@ -363,7 +364,7 @@ namespace Game.Fast
                 {
                     players[i].TickAction();
 
-                    for (int b = 0; b < bonusCount;)
+                    for (var b = 0; b < bonusCount;)
                     {
                         if (bonuses[b].pos != players[i].arrivePos && !capture.BelongsTo(bonuses[b].pos, i))
                             b++;
@@ -398,7 +399,7 @@ namespace Game.Fast
                                     v = NextCoord(v, players[i].dir.Value);
                                     if (v == ushort.MaxValue)
                                         break;
-                                    for (int k = 0; k < players.Length; k++)
+                                    for (var k = 0; k < players.Length; k++)
                                     {
                                         if (k == i || players[k].status == PlayerStatus.Eliminated)
                                             continue;
@@ -419,7 +420,7 @@ namespace Game.Fast
                                     }
                                 }
 
-                                for (int k = 0; k < players.Length; k++)
+                                for (var k = 0; k < players.Length; k++)
                                 {
                                     if (k == i || players[k].status == PlayerStatus.Eliminated)
                                         continue;
@@ -434,11 +435,11 @@ namespace Game.Fast
                                     {
                                         if (players[k].arrivePos % Env.X_CELLS_COUNT < vx)
                                         {
-                                            int pos = 0;
-                                            for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
+                                            var pos = 0;
+                                            for (var y = 0; y < Env.Y_CELLS_COUNT; y++)
                                             {
                                                 pos += vx;
-                                                for (int x = vx; x < Env.X_CELLS_COUNT; x++, pos++)
+                                                for (var x = vx; x < Env.X_CELLS_COUNT; x++, pos++)
                                                 {
                                                     if (territory[pos] == k)
                                                     {
@@ -452,10 +453,10 @@ namespace Game.Fast
                                         }
                                         else
                                         {
-                                            int pos = 0;
-                                            for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
+                                            var pos = 0;
+                                            for (var y = 0; y < Env.Y_CELLS_COUNT; y++)
                                             {
-                                                for (int x = 0; x <= vx; x++, pos++)
+                                                for (var x = 0; x <= vx; x++, pos++)
                                                 {
                                                     if (territory[pos] == k)
                                                     {
@@ -474,9 +475,9 @@ namespace Game.Fast
                                     {
                                         if (players[k].arrivePos / Env.X_CELLS_COUNT < vy)
                                         {
-                                            int pos = vy * Env.X_CELLS_COUNT;
-                                            for (int y = vy; y < Env.Y_CELLS_COUNT; y++)
-                                            for (int x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
+                                            var pos = vy * Env.X_CELLS_COUNT;
+                                            for (var y = vy; y < Env.Y_CELLS_COUNT; y++)
+                                            for (var x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
                                             {
                                                 if (territory[pos] == k)
                                                 {
@@ -489,9 +490,9 @@ namespace Game.Fast
                                         }
                                         else
                                         {
-                                            int pos = 0;
-                                            for (int y = 0; y <= vy; y++)
-                                            for (int x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
+                                            var pos = 0;
+                                            for (var y = 0; y <= vy; y++)
+                                            for (var x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
                                             {
                                                 if (territory[pos] == k)
                                                 {
@@ -524,7 +525,7 @@ namespace Game.Fast
             MoveDone();
 
             playersLeft = 0;
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 switch (players[i].status)
                 {
@@ -599,12 +600,12 @@ namespace Game.Fast
 
         private void CheckIsAte()
         {
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Loser)
                     continue;
 
-                var prevPosEatenBy = capture.EatenBy(players[i].pos, i);
+                var prevPosEatenBy = capture.PlayerEatenByMask(players[i].pos, i);
                 if (prevPosEatenBy != 0)
                 {
                     if (players[i].arriveTime != 0)
@@ -614,7 +615,7 @@ namespace Game.Fast
                     }
                     else
                     {
-                        var eatenBy = capture.EatenBy(players[i].arrivePos, i);
+                        var eatenBy = capture.PlayerEatenByMask(players[i].arrivePos, i);
                         if ((eatenBy & prevPosEatenBy) != 0)
                         {
                             players[i].status = PlayerStatus.Loser;
@@ -627,7 +628,7 @@ namespace Game.Fast
 
         private void CheckLoss()
         {
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
@@ -642,7 +643,7 @@ namespace Game.Fast
                         players[i].status = PlayerStatus.Loser;
                 }
 
-                for (int k = i + 1; k < players.Length; k++)
+                for (var k = i + 1; k < players.Length; k++)
                 {
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;
@@ -663,21 +664,21 @@ namespace Game.Fast
                 }
             }
 
-            for (int i = 0; i < players.Length; i++)
+            for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.territoryCaptureCount[i] == 0)
+                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.CapturedCountBy(i) == 0)
                     players[i].UpdateLines(i, this);
             }
 
-            for (int i = 0; i < players.Length - 1; i++)
+            for (var i = 0; i < players.Length - 1; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                for (int k = i + 1; k < players.Length; k++)
+                for (var k = i + 1; k < players.Length; k++)
                 {
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;
@@ -735,12 +736,12 @@ namespace Game.Fast
 
         private void CheckIntermediateCollisions()
         {
-            for (int i = 0; i < players.Length - 1; i++)
+            for (var i = 0; i < players.Length - 1; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                for (int k = i + 1; k < players.Length; k++)
+                for (var k = i + 1; k < players.Length; k++)
                 {
                     if (players[k].status == PlayerStatus.Eliminated)
                         continue;

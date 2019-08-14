@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 using Game.Protocol;
 
-namespace Game.Fast
+namespace Game.Sim
 {
-    public class FastPlayer
+    public class Player
     {
         public PlayerStatus status;
         public ushort pos;
@@ -23,9 +23,9 @@ namespace Game.Fast
         public int opponentTerritoryCaptured;
         
         public int lineCount;
-        public ushort[] line;
+        public readonly ushort[] line;
 
-        public FastPlayer()
+        public Player()
         {
             line = new ushort[Env.CELLS_COUNT];
         }
@@ -59,7 +59,7 @@ namespace Game.Fast
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdateLines(int player, FastState state)
+        public void UpdateLines(int player, State state)
         {
             if (lineCount > 0 || state.territory[arrivePos] != player)
             {

@@ -1,11 +1,11 @@
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.BruteForce
 {
     public class MinimaxEstimator : IMinimaxEstimator
     {
-        public double Estimate(FastState state, int player)
+        public double Estimate(State state, int player)
         {
             double baseScore;
             if (state.players[player].status == PlayerStatus.Eliminated)
@@ -13,7 +13,7 @@ namespace Game.BruteForce
             else
             {
                 baseScore = 0;
-                for (int i = 0; i < state.players.Length; i++)
+                for (var i = 0; i < state.players.Length; i++)
                 {
                     if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
                         baseScore += 10_000_000;
@@ -30,7 +30,7 @@ namespace Game.BruteForce
             
             var otherScore = 0;
             var otherMaxScore = 0;
-            for (int i = 0; i < state.players.Length; i++)
+            for (var i = 0; i < state.players.Length; i++)
             {
                 if (i != player)
                 {

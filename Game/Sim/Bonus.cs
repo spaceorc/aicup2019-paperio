@@ -1,13 +1,13 @@
 using Game.Protocol;
 
-namespace Game.Fast
+namespace Game.Sim
 {
-    public class FastBonus
+    public class Bonus
     {
         public BonusType type;
         public ushort pos;
 
-        public FastBonus(FastState state, RequestInput.BonusData inputBonusData)
+        public Bonus(State state, RequestInput.BonusData inputBonusData)
         {
             type = inputBonusData.type;
             pos = state.ToCoord(inputBonusData.position.ToCellCoords(Env.WIDTH));

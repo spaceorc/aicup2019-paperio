@@ -1,8 +1,8 @@
 using System;
 using System.Text;
-using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
@@ -25,7 +25,7 @@ namespace Game.Strategies
 
         public bool walkOnTerritory;
 
-        public bool Generate(FastState state, int player, DistanceMapGenerator distanceMap)
+        public bool Generate(State state, int player, DistanceMapGenerator distanceMap)
         {
             if (coords == null)
             {
@@ -40,11 +40,11 @@ namespace Game.Strategies
             len = 0;
             startLen = 0;
             var timeLimit = Env.MAX_TICK_COUNT - state.time;
-            for (int i = 0; i < state.players[player].lineCount; i++)
+            for (var i = 0; i < state.players[player].lineCount; i++)
             {
                 var line = state.players[player].line[i];
                 used[line] = gen;
-                for (int other = 0; other < state.players.Length; other++)
+                for (var other = 0; other < state.players.Length; other++)
                 {
                     if (other == player)
                         continue;
@@ -145,7 +145,7 @@ namespace Game.Strategies
                 }
 
                 var found = false;
-                for (int i = 0; i < dirsCount; i++)
+                for (var i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
                     var nextPos = state.NextCoord(pos, nextDir);
@@ -174,7 +174,7 @@ namespace Game.Strategies
                         nextNitroLeft--;
                     if (nextSlowLeft > 0)
                         nextSlowLeft--;
-                    for (int b = 0; b < state.bonusCount; b++)
+                    for (var b = 0; b < state.bonusCount; b++)
                     {
                         if (state.bonuses[b].pos == nextPos)
                         {
@@ -185,14 +185,14 @@ namespace Game.Strategies
                         }
                     }
 
-                    var nextShiftTime = FastPlayer.GetShiftTime(nextNitroLeft, nextSlowLeft);
+                    var nextShiftTime = Player.GetShiftTime(nextNitroLeft, nextSlowLeft);
                     var escapeTime = nextTime + nextShiftTime;
 
                     var nextTimeLimit = timeLimit;
                     var nextStarted = started || state.territory[nextPos] != player;
                     if (nextStarted)
                     {
-                        for (int other = 0; other < state.players.Length; other++)
+                        for (var other = 0; other < state.players.Length; other++)
                         {
                             if (other == player)
                                 continue;
@@ -211,7 +211,7 @@ namespace Game.Strategies
                                 }
 
                                 var prevOtherPos = distanceMap.paths[other, nextPos];
-                                var prevShiftTime = FastPlayer.GetShiftTime(distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                                var prevShiftTime = Player.GetShiftTime(distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
                                 var otherEnterTime = otherTimeToPos - prevShiftTime;
 
                                 if (otherEnterTime < escapeTime)
@@ -309,14 +309,14 @@ namespace Game.Strategies
             }
         }
 
-        public string Print(FastState state, int player)
+        public string Print(State state, int player)
         {
             if (len == 0)
                 return "<EMPTY>";
 
             var result = new StringBuilder();
             result.Append(state.ToV(coords[0]));
-            for (int i = 1; i < len; i++)
+            for (var i = 1; i < len; i++)
             {
                 result.Append("->");
                 result.Append(state.ToV(coords[i]));

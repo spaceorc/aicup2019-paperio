@@ -1,7 +1,8 @@
 using System;
-using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
+using Game.Sim;
+using Game.Sim.Backup;
 
 namespace Game.Strategies
 {
@@ -11,7 +12,7 @@ namespace Game.Strategies
         private readonly IEstimator estimator;
         private readonly RandomPathGenerator randomPath = new RandomPathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
-        private readonly FastStateBackup backup = new FastStateBackup();
+        private readonly StateBackup backup = new StateBackup();
         private PathBuilder[] paths;
         private Direction[] commands;
 
@@ -22,7 +23,7 @@ namespace Game.Strategies
             randomPath.walkOnTerritory = walkOnTerritory;
         }
 
-        public RequestOutput GetCommand(FastState state, int player, ITimeManager timeManager, Random random)
+        public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)
         {
             if (paths == null)
             {
@@ -49,7 +50,7 @@ namespace Game.Strategies
             var validPathCounter = 0;
             Direction? bestDir = null;
             double bestScore = 0;
-            int bestLen = 0;
+            var bestLen = 0;
             string bestPath = null;
             long simulations = 0;
             while (!timeManager.IsExpired)
@@ -59,7 +60,7 @@ namespace Game.Strategies
                 {
                     ++validPathCounter;
                     var dir = default(Direction);
-                    for (int i = 0; i < state.players.Length; i++)
+                    for (var i = 0; i < state.players.Length; i++)
                     {
                         if (i == player)
                         {
@@ -77,7 +78,7 @@ namespace Game.Strategies
 
                     while (true)
                     {
-                        for (int i = 0; i < state.players.Length; i++)
+                        for (var i = 0; i < state.players.Length; i++)
                         {
                             if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
                                 continue;
@@ -90,7 +91,7 @@ namespace Game.Strategies
                             }
                             else if (state.players[i].dir != null)
                             {
-                                for (int d = 3; d <= 5; d++)
+                                for (var d = 3; d <= 5; d++)
                                 {
                                     var nd = (Direction)(((int)state.players[i].dir.Value + d) % 4);
                                     var next = state.NextCoord(state.players[i].arrivePos, nd);
@@ -118,7 +119,7 @@ namespace Game.Strategies
                                 Logger.Debug($"Score: {bestScore}; Path: {bestPath}");
                                 if (Logger.IsEnabled(Logger.Level.Debug))
                                 {
-                                    for (int i = 0; i < paths.Length; i++)
+                                    for (var i = 0; i < paths.Length; i++)
                                     {
                                         Logger.Debug($"{i}: {paths[i].Print()} {state.players[i].status}");
                                     }
@@ -147,7 +148,7 @@ namespace Game.Strategies
                 Direction? validDir = null;
                 if (state.players[player].dir == null)
                 {
-                    for (int d = 0; d < 4; d++)
+                    for (var d = 0; d < 4; d++)
                     {
                         var next = state.NextCoord(state.players[player].arrivePos, (Direction)d);
                         if (next != ushort.MaxValue)
@@ -161,7 +162,7 @@ namespace Game.Strategies
                 else
                 {
                     var sd = random.Next(3);
-                    for (int d = 0; d < 4; d++)
+                    for (var d = 0; d < 4; d++)
                     {
                         var nd = (Direction)(((int)state.players[player].dir.Value + 3 + sd + d) % 4);
                         if (nd == (Direction)(((int)state.players[player].dir.Value + 2) % 4))
@@ -182,7 +183,7 @@ namespace Game.Strategies
             return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}"};
         }
 
-        private bool TryGotoStart(FastState state, int player, out RequestOutput result)
+        private bool TryGotoStart(State state, int player, out RequestOutput result)
         {
             if (state.territory[state.players[player].arrivePos] == player)
             {
@@ -198,13 +199,13 @@ namespace Game.Strategies
             return false;
         }
 
-        private bool TryKillOpponent(FastState state, int player, out RequestOutput result)
+        private bool TryKillOpponent(State state, int player, out RequestOutput result)
         {
             if (state.territory[state.players[player].arrivePos] == player)
             {
                 if (state.players[player].dir != null)
                 {
-                    for (int d = 3; d <= 5; d++)
+                    for (var d = 3; d <= 5; d++)
                     {
                         var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
                         var ne = state.NextCoord(state.players[player].arrivePos, nd);
@@ -212,7 +213,7 @@ namespace Game.Strategies
                         {
                             if (state.territory[ne] == player)
                             {
-                                for (int other = 0; other < state.players.Length; other++)
+                                for (var other = 0; other < state.players.Length; other++)
                                 {
                                     if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                                         continue;

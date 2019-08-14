@@ -1,21 +1,21 @@
-using Game.Fast;
+using Game.Sim;
 
 namespace Game.Strategies
 {
     public class BestScoreEstimator : IEstimator
     {
-        public void Before(FastState state, int player)
+        public void Before(State state, int player)
         {
         }
 
-        public double Estimate(FastState state, int player, int pathStartLen)
+        public double Estimate(State state, int player, int pathStartLen)
         {
             var score = 0;
             if (state.players[player].status == PlayerStatus.Eliminated)
                 score -= 1_000_000_000;
             else
             {
-                for (int i = 0; i < state.players.Length; i++)
+                for (var i = 0; i < state.players.Length; i++)
                 {
                     if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
                         score += 1_000_000;

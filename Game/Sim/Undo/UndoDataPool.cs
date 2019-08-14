@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
-namespace Game.Fast
+namespace Game.Sim.Undo
 {
     public class UndoDataPool
     {
@@ -12,6 +13,7 @@ namespace Game.Fast
             this.playerCount = playerCount;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public UndoData Get()
         {
             return stack.Count == 0
@@ -19,6 +21,7 @@ namespace Game.Fast
                 : stack.Pop();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Return(UndoData undo)
         {
             stack.Push(undo);

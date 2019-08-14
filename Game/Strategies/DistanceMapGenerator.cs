@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
@@ -16,7 +16,7 @@ namespace Game.Strategies
         public ushort[] nearestOwned;
         public ushort[] nearestOpponent;
 
-        public void Build(FastState state)
+        public void Build(State state)
         {
             if (times == null)
             {
@@ -30,7 +30,7 @@ namespace Game.Strategies
                 nearestOpponent = new ushort[state.players.Length];
             }
 
-            for (int i = 0; i < state.players.Length; i++)
+            for (var i = 0; i < state.players.Length; i++)
             {
                 if (state.players[i].status == PlayerStatus.Eliminated)
                     continue;
@@ -38,7 +38,7 @@ namespace Game.Strategies
             }
         }
 
-        public string Print(FastState state, int forPlayer)
+        public string Print(State state, int forPlayer)
         {
             var players = state.players;
             var bonuses = state.bonuses;
@@ -48,16 +48,16 @@ namespace Game.Strategies
             const string tc = "ABCDEF";
             using (var writer = new StringWriter())
             {
-                for (int y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
+                for (var y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
                 {
-                    for (int x = 0; x < Env.X_CELLS_COUNT; x++)
+                    for (var x = 0; x < Env.X_CELLS_COUNT; x++)
                     {
                         var c = (ushort)(y * Env.X_CELLS_COUNT + x);
 
                         var dist = times[forPlayer, c];
 
-                        int player = -1;
-                        for (int p = 0; p < players.Length; p++)
+                        var player = -1;
+                        for (var p = 0; p < players.Length; p++)
                         {
                             if (players[p].status != PlayerStatus.Eliminated && (players[p].pos == c || players[p].arrivePos == c))
                             {
@@ -66,8 +66,8 @@ namespace Game.Strategies
                             }
                         }
 
-                        FastBonus bonus = null;
-                        for (int b = 0; b < bonusCount; b++)
+                        Bonus bonus = null;
+                        for (var b = 0; b < bonusCount; b++)
                         {
                             if (bonuses[b].pos == c)
                             {
@@ -104,12 +104,12 @@ namespace Game.Strategies
             }
         }
 
-        private void Build(FastState state, int player)
+        private void Build(State state, int player)
         {
             nearestEmpty[player] = ushort.MaxValue;
             nearestOpponent[player] = ushort.MaxValue;
             nearestOwned[player] = ushort.MaxValue;
-            for (int c = 0; c < times.GetLength(1); c++)
+            for (var c = 0; c < times.GetLength(1); c++)
             {
                 var isLine = (state.lines[c] & (1 << player)) != 0;
                 times[player, c] = isLine ? -1 : int.MaxValue;
@@ -155,7 +155,7 @@ namespace Game.Strategies
                 if (nearestOwned[player] == ushort.MaxValue && state.territory[cur] == player)
                     nearestOwned[player] = cur;
 
-                for (int dir = 0; dir < 4; dir++)
+                for (var dir = 0; dir < 4; dir++)
                 {
                     if (cur == start && startDir != null)
                     {
@@ -168,7 +168,7 @@ namespace Game.Strategies
                     {
                         var nitroLeft = nitroLefts[player, cur];
                         var slowLeft = slowLefts[player, cur];
-                        var nextDist = times[player, cur] + FastPlayer.GetShiftTime(nitroLeft, slowLeft);
+                        var nextDist = times[player, cur] + Player.GetShiftTime(nitroLeft, slowLeft);
                         if (nextDist < times[player, next])
                         {
                             times[player, next] = nextDist;
@@ -183,7 +183,7 @@ namespace Game.Strategies
                                 nitroLeft--;
                             if (slowLeft > 0)
                                 slowLeft--;
-                            for (int b = 0; b < state.bonusCount; b++)
+                            for (var b = 0; b < state.bonusCount; b++)
                             {
                                 if (state.bonuses[b].pos == next)
                                 {

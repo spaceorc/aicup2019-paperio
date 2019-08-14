@@ -1,5 +1,5 @@
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
@@ -9,14 +9,14 @@ namespace Game.Strategies
         private int prevScore;
         private int prevTime;
         
-        public void Before(FastState state, int player)
+        public void Before(State state, int player)
         {
             prevCaptured = state.players[player].opponentTerritoryCaptured;
             prevScore = state.players[player].score;
             prevTime = state.time;
         }
 
-        public double Estimate(FastState state, int player, int pathStartLen)
+        public double Estimate(State state, int player, int pathStartLen)
         {
             double baseScore;
             if (state.players[player].status == PlayerStatus.Eliminated)
@@ -24,7 +24,7 @@ namespace Game.Strategies
             else
             {
                 baseScore = 0;
-                for (int i = 0; i < state.players.Length; i++)
+                for (var i = 0; i < state.players.Length; i++)
                 {
                     if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
                         baseScore += 10_000_000;

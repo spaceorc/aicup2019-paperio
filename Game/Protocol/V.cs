@@ -13,8 +13,8 @@ namespace Game.Protocol
 
         static V()
         {
-            for (int x = -30; x < 31; x++)
-            for (int y = -30; y < 31; y++)
+            for (var x = -30; x < 31; x++)
+            for (var y = -30; y < 31; y++)
             {
                 cache[x + 30, y + 30] = new V(x, y);
             }

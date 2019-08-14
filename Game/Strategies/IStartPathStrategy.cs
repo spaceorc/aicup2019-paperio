@@ -1,10 +1,10 @@
-using Game.Fast;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
     public interface IStartPathStrategy
     {
-        RequestOutput GotoStart(FastState state, int player, DistanceMapGenerator distanceMap);
+        RequestOutput GotoStart(State state, int player, DistanceMapGenerator distanceMap);
     }
 }

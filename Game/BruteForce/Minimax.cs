@@ -1,6 +1,7 @@
-using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
+using Game.Sim;
+using Game.Sim.Undo;
 
 namespace Game.BruteForce
 {
@@ -22,7 +23,7 @@ namespace Game.BruteForce
             commands = new Direction[6 * maxDepth * 2];
         }
 
-        public void Alphabeta(ITimeManager timeManager, FastState state, int player)
+        public void Alphabeta(ITimeManager timeManager, State state, int player)
         {
             bestScore = double.MinValue;
             bestDepth = 0;
@@ -45,7 +46,7 @@ namespace Game.BruteForce
 
         private double Alphabeta(
             ITimeManager timeManager,
-            FastState state,
+            State state,
             int player,
             int depth,
             int activePlayer,
@@ -80,7 +81,7 @@ namespace Game.BruteForce
                     continue;
                 
                 commands[commandsStart + activePlayer] = action;
-                int nextPlayer = activePlayer == player ? 0 : activePlayer + 1;
+                var nextPlayer = activePlayer == player ? 0 : activePlayer + 1;
                 for (; nextPlayer < state.players.Length; nextPlayer++)
                 {
                     if (nextPlayer == player

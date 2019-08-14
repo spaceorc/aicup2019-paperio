@@ -1,14 +1,14 @@
 ﻿using System;
-using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
+using Game.Sim;
 
 namespace Game.Strategies
 {
     public class Strategy : IStrategy
     {
         private readonly IAi ai;
-        private readonly FastState state = new FastState();
+        private readonly State state = new State();
         
         public Strategy(IAi ai)
         {
@@ -35,7 +35,7 @@ namespace Game.Strategies
                 var curDir = state.players[0].dir;
                 if (curDir != null)
                 {
-                    for (int d = 3; d <= 5; d++)
+                    for (var d = 3; d <= 5; d++)
                     {
                         var nd = (Direction)(((int)curDir.Value + d) % 4);
                         var next = state.NextCoord(state.players[0].arrivePos, nd);
