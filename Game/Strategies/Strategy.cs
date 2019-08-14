@@ -25,7 +25,7 @@ namespace Game.Strategies
             Logger.Debug($"seed: {seed}");
             try
             {
-                var output = ai.GetCommand(state, state.curPlayer, timeManager, new Random(seed));
+                var output = ai.GetCommand(state, 0, timeManager, new Random(seed));
                 output.Debug += $". Command: {output.Command}. Seed: {seed}. Elapsed: {timeManager.Elapsed}. ElapsedGlobal: {timeManager.ElapsedGlobal}";
                 return output;
             }
@@ -35,17 +35,17 @@ namespace Game.Strategies
                 throw;
                 #endif
                 var direction = default(Direction);
-                var curDir = state.players[state.curPlayer].dir;
+                var curDir = state.players[0].dir;
                 if (curDir != null)
                 {
                     for (int d = 3; d <= 5; d++)
                     {
                         var nd = (Direction)(((int)curDir.Value + d) % 4);
-                        var next = state.NextCoord(state.players[state.curPlayer].arrivePos, nd);
+                        var next = state.NextCoord(state.players[0].arrivePos, nd);
                         if (next != ushort.MaxValue)
                         {
                             direction = nd;
-                            if (state.territory[next] == state.curPlayer)
+                            if (state.territory[next] == 0)
                                 break;
                         }
                     }

@@ -120,6 +120,13 @@ namespace Game.Types
                 (Y - width / 2) / width);
         }
 
+        public V ToRealCoords(int width)
+        {
+            return V.Get(
+                X * width + width / 2,
+                Y * width + width / 2);
+        }
+
         public V[] GetDiagonals(int width)
         {
             return diagonals.Select(v => this + v * width).ToArray();

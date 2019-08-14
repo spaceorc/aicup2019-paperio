@@ -1,5 +1,3 @@
-using System;
-
 namespace Game.Protocol
 {
     public static class Env
@@ -27,5 +25,10 @@ namespace Game.Protocol
         public const int TICKS_PER_REQUEST = 6;
         public const int NITRO_TICKS_PER_REQUEST = 5;
         public const int SLOW_TICKS_PER_REQUEST = 10;
+        
+        public const int NITRO_SPEED = 6;
+        public const int SLOW_SPEED = 3;
+        
+        public const int CELLS_COUNT = Y_CELLS_COUNT * X_CELLS_COUNT;
     }
 }

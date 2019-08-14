@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Game.Protocol;
+using Game.Types;
 
 namespace Game.Unsafe
 {
@@ -16,10 +20,7 @@ namespace Game.Unsafe
                 throw new InvalidOperationException($"sizeof(UnsafeState) == {sizeof(UnsafeState)} with expected {Size}");
         }
 
-        public const byte MASK_GAME_OVER = 0b10000000;
-        public const byte MASK_PLAYERS = 0b00111111;
-        public byte mask; // 1
-
+        public byte playersCount; // 1
         public ushort time; // 2
 
         // owner (0..6, 7 nobody) - 3 bit
@@ -39,28 +40,209 @@ namespace Game.Unsafe
         public const byte TERRITORY_BONUS_SAW = 0b11000000;
 
         public fixed byte players[6 * UnsafePlayer.Size]; // 6*17 = 102
-        public fixed byte territory[31 * 31]; // 961
+        public fixed byte territory[Env.CELLS_COUNT]; // 961
+
+        public string Print(bool territoryOnly = false)
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                const string tc = "ABCDEF";
+                using (var writer = new StringWriter())
+                {
+                    var players = (UnsafePlayer*)that->players;
+                    var pl = new List<UnsafePlayer>();
+                    for (int p = 0; p < that->playersCount; p++)
+                        pl.Add(players[p]);
+
+                    writer.WriteLine($"score: {string.Join(",", pl.Select(x => x.score))}");
+                    writer.WriteLine($"territory: {string.Join(",", pl.Select(x => x.territory))}");
+                    writer.WriteLine($"nitroLeft: {string.Join(",", pl.Select(x => x.nitroLeft))}");
+                    writer.WriteLine($"slowLeft: {string.Join(",", pl.Select(x => x.slowLeft))}");
+                    writer.WriteLine($"nitrosCollected: {string.Join(",", pl.Select(x => x.nitrosCollected))}");
+                    writer.WriteLine($"slowsCollected: {string.Join(",", pl.Select(x => x.slowsCollected))}");
+                    writer.WriteLine($"opponentTerritoryCaptured: {string.Join(",", pl.Select(x => x.opponentTerritoryCaptured))}");
+                    writer.WriteLine($"lineCount: {string.Join(",", pl.Select(x => x.lineCount))}");
+                    for (int y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
+                    {
+                        for (int x = 0; x < Env.X_CELLS_COUNT; x++)
+                        {
+                            var c = (ushort)(y * Env.X_CELLS_COUNT + x);
+
+                            int player = -1;
+                            for (int p = 0; p < that->playersCount; p++)
+                            {
+                                if (players[p].status != UnsafePlayer.STATUS_ELIMINATED && (players[p].pos == c || players[p].arrivePos == c))
+                                {
+                                    player = p;
+                                    break;
+                                }
+                            }
+
+                            var tomb = false;
+                            for (int p = 0; p < that->playersCount; p++)
+                            {
+                                if (players[p].status == UnsafePlayer.STATUS_ELIMINATED && (players[p].pos == c || players[p].arrivePos == c))
+                                {
+                                    tomb = true;
+                                    break;
+                                }
+                            }
+
+                            var bonus = (that->territory[c] & TERRITORY_BONUS_MASK) == TERRITORY_BONUS_NITRO ? 'N'
+                                : (that->territory[c] & TERRITORY_BONUS_MASK) == TERRITORY_BONUS_SLOW ? 'S'
+                                : (that->territory[c] & TERRITORY_BONUS_MASK) == TERRITORY_BONUS_SAW ? 'W'
+                                : (char?)null;
+
+                            if (territoryOnly)
+                            {
+                                if ((that->territory[c] & TERRITORY_OWNER_MASK) == TERRITORY_OWNER_NO)
+                                    writer.Write('.');
+                                else
+                                    writer.Write(tc[that->territory[c] & TERRITORY_OWNER_MASK]);
+                            }
+                            else
+                            {
+                                if (bonus != null)
+                                    writer.Write(bonus.Value);
+                                else if (player != -1)
+                                    writer.Write(player);
+                                else if (tomb)
+                                    writer.Write('*');
+                                else if ((that->territory[c] & TERRITORY_LINE_MASK) != TERRITORY_LINE_NO)
+                                    writer.Write('x');
+                                else if ((that->territory[c] & TERRITORY_OWNER_MASK) == TERRITORY_OWNER_NO)
+                                    writer.Write('.');
+                                else
+                                    writer.Write(tc[that->territory[c] & TERRITORY_OWNER_MASK]);
+                            }
+                        }
+
+                        writer.WriteLine();
+                    }
+
+                    return writer.ToString();
+                }
+            }
+        }
+
+        public void SetInput(RequestInput input, string my = "i")
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                that->playersCount = (byte)input.players.Count;
+                that->time = (ushort)input.tick_num;
+                for (int i = 0; i < Env.CELLS_COUNT; i++)
+                    that->territory[i] = TERRITORY_BONUS_NO | TERRITORY_LINE_NO | TERRITORY_OWNER_NO;
+
+                var pi = 0;
+                AddPlayer(that, pi++, input.players[my]);
+                foreach (var kvp in input.players.Where(x => x.Key != my))
+                    AddPlayer(that, pi++, kvp.Value);
+
+                for (var i = 0; i < input.bonuses.Length; i++)
+                {
+                    var lv = ToCoord(input.bonuses[i].position.ToCellCoords(Env.WIDTH));
+                    that->territory[lv] = (byte)(that->territory[lv] & ~TERRITORY_BONUS_MASK
+                                                 | (input.bonuses[i].type == BonusType.N ? TERRITORY_BONUS_NITRO
+                                                     : input.bonuses[i].type == BonusType.S ? TERRITORY_BONUS_SLOW
+                                                     : input.bonuses[i].type == BonusType.Saw ? TERRITORY_BONUS_SAW
+                                                     : throw new InvalidOperationException()));
+                }
+            }
+        }
+
+        private static void AddPlayer(UnsafeState* that, int index, RequestInput.PlayerData playerData)
+        {
+            var player = (UnsafePlayer*)that->players + index;
+            player->dir = playerData.direction == null ? UnsafePlayer.DIR_NULL : (byte)playerData.direction.Value;
+            player->score = (ushort)playerData.score;
+            player->slowLeft = (byte)(playerData.bonuses.FirstOrDefault(b => b.type == BonusType.S)?.ticks ?? 0);
+            player->nitroLeft = (byte)(playerData.bonuses.FirstOrDefault(b => b.type == BonusType.N)?.ticks ?? 0);
+            player->lineCount = (ushort)playerData.lines.Length;
+            player->territory = (ushort)playerData.territory.Length;
+            player->slowsCollected = 0;
+            player->nitrosCollected = 0;
+            player->killedBy = 0;
+            player->opponentTerritoryCaptured = 0;
+            player->UpdateShiftTime();
+
+            var accel = 0;
+            if (player->nitroLeft > 0)
+                accel++;
+            if (player->slowLeft > 0)
+                accel--;
+
+            var speed = accel == 0 ? Env.SPEED
+                : accel == -1 ? Env.SLOW_SPEED
+                : accel == 1 ? Env.NITRO_SPEED
+                : throw new InvalidOperationException();
+
+            var v = playerData.position;
+            var arriveTime = 0;
+            while (!v.InCellCenter(Env.WIDTH))
+            {
+                v += GetShift(playerData.direction ?? throw new InvalidOperationException(), speed);
+                arriveTime++;
+            }
+
+            player->arrivePos = ToCoord(v.ToCellCoords(Env.WIDTH));
+            player->arriveTime = (byte)arriveTime;
+            if (arriveTime == 0)
+                player->pos = player->arrivePos;
+            else
+                player->pos = NextCoord(player->arrivePos, (byte)((player->dir + 2) % 4));
+
+            player->status = playerData.direction == null && index != 0
+                ? UnsafePlayer.STATUS_BROKEN
+                : UnsafePlayer.STATUS_ACTIVE;
+
+            for (var k = 0; k < playerData.lines.Length; k++)
+            {
+                var lv = ToCoord(playerData.lines[k].ToCellCoords(Env.WIDTH));
+                that->territory[lv] = (byte)(that->territory[lv] & ~TERRITORY_LINE_MASK | (index << TERRITORY_LINE_SHIFT));
+            }
+
+            for (var k = 0; k < playerData.territory.Length; k++)
+            {
+                var lv = ToCoord(playerData.territory[k].ToCellCoords(Env.WIDTH));
+                that->territory[lv] = (byte)(that->territory[lv] & ~TERRITORY_OWNER_MASK | index);
+            }
+
+            V GetShift(Direction direction, int d) =>
+                direction == Direction.Up ? V.Get(0, d)
+                : direction == Direction.Down ? V.Get(0, -d)
+                : direction == Direction.Right ? V.Get(d, 0)
+                : direction == Direction.Left ? V.Get(-d, 0)
+                : throw new InvalidOperationException($"Unknown direction: {direction}");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ApplyCommand(int player, byte dir)
+        {
+            fixed (UnsafeState* that = &this)
+            {
+                var p = (UnsafePlayer*)that->players;
+                p[player].dir = dir;
+            }
+        }
 
         public void NextTurn(UnsafeCapture* capture, UnsafeUndo* undo)
         {
             fixed (UnsafeState* that = &this)
             {
                 var timeDelta = RenewArriveTime();
-                
+
                 if (undo != null)
                     undo->AfterCommands(that);
 
                 that->time = (ushort)(that->time + timeDelta);
                 if (that->time > Env.MAX_TICK_COUNT)
-                {
-                    that->mask |= MASK_GAME_OVER;
                     return;
-                }
 
                 Move(timeDelta);
 
-                var tickScores = stackalloc ushort[6];
-                for (int i = 0; i < 6; i++)
+                var tickScores = stackalloc ushort[that->playersCount];
+                for (int i = 0; i < that->playersCount; i++)
                     tickScores[i] = 0;
 
                 CheckIntermediateCollisions();
@@ -87,7 +269,7 @@ namespace Game.Unsafe
             {
                 var minArriveTime = byte.MaxValue;
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status != UnsafePlayer.STATUS_ACTIVE)
                         continue;
@@ -117,23 +299,24 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                var playersLeft = 0;
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     switch (p->status)
                     {
                         case UnsafePlayer.STATUS_LOOSER:
                             p->status = UnsafePlayer.STATUS_ELIMINATED;
-                            that->mask = (byte)(that->mask & ~(1 << i));
                             break;
                         case UnsafePlayer.STATUS_ACTIVE:
                         case UnsafePlayer.STATUS_BROKEN:
                             p->score += tickScores[i];
+                            playersLeft++;
                             break;
                     }
                 }
 
-                if ((that->mask & MASK_PLAYERS) == 0)
-                    that->mask = (byte)(that->mask | MASK_GAME_OVER);
+                if (playersLeft == 0)
+                    that->time = ushort.MaxValue;
             }
         }
 
@@ -142,13 +325,13 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6 - 1; i++, p++)
+                for (int i = 0; i < that->playersCount - 1; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
 
                     var pk = p + 1;
-                    for (int k = i + 1; k < 6; k++, pk++)
+                    for (int k = i + 1; k < that->playersCount; k++, pk++)
                     {
                         if (pk->status == UnsafePlayer.STATUS_ELIMINATED)
                             continue;
@@ -227,7 +410,7 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED || p->status == UnsafePlayer.STATUS_LOOSER)
                         continue;
@@ -259,7 +442,7 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED || p->status == UnsafePlayer.STATUS_BROKEN)
                         continue;
@@ -304,7 +487,7 @@ namespace Game.Unsafe
                                         if (v == ushort.MaxValue)
                                             break;
                                         var ppk = (UnsafePlayer*)that->players;
-                                        for (int k = 0; k < 6; k++, ppk++)
+                                        for (int k = 0; k < that->playersCount; k++, ppk++)
                                         {
                                             if (k == i || ppk->status == UnsafePlayer.STATUS_ELIMINATED)
                                                 continue;
@@ -328,7 +511,7 @@ namespace Game.Unsafe
                                     }
 
                                     var pk = (UnsafePlayer*)that->players;
-                                    for (int k = 0; k < 6; k++, pk++)
+                                    for (int k = 0; k < that->playersCount; k++, pk++)
                                     {
                                         if (k == i || pk->status == UnsafePlayer.STATUS_ELIMINATED)
                                             continue;
@@ -337,17 +520,17 @@ namespace Game.Unsafe
                                             continue;
 
                                         tickScores[i] += Env.SAW_SCORE;
-                                        var vx = v % 31;
-                                        var vy = v / 31;
+                                        var vx = v % Env.X_CELLS_COUNT;
+                                        var vy = v / Env.X_CELLS_COUNT;
                                         if (p->dir == UnsafePlayer.DIR_UP || p->dir == UnsafePlayer.DIR_DOWN)
                                         {
-                                            if (pk->arrivePos % 31 < vx)
+                                            if (pk->arrivePos % Env.X_CELLS_COUNT < vx)
                                             {
                                                 int pos = 0;
-                                                for (int y = 0; y < 31; y++)
+                                                for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
                                                 {
                                                     pos += vx;
-                                                    for (int x = vx; x < 31; x++, pos++)
+                                                    for (int x = vx; x < Env.X_CELLS_COUNT; x++, pos++)
                                                     {
                                                         if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
                                                         {
@@ -362,7 +545,7 @@ namespace Game.Unsafe
                                             else
                                             {
                                                 int pos = 0;
-                                                for (int y = 0; y < 31; y++)
+                                                for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
                                                 {
                                                     for (int x = 0; x <= vx; x++, pos++)
                                                     {
@@ -375,17 +558,17 @@ namespace Game.Unsafe
                                                         }
                                                     }
 
-                                                    pos += 31 - vx - 1;
+                                                    pos += Env.X_CELLS_COUNT - vx - 1;
                                                 }
                                             }
                                         }
                                         else
                                         {
-                                            if (pk->arrivePos / 31 < vy)
+                                            if (pk->arrivePos / Env.X_CELLS_COUNT < vy)
                                             {
-                                                int pos = vy * 31;
-                                                for (int y = vy; y < 31; y++)
-                                                for (int x = 0; x < 31; x++, pos++)
+                                                int pos = vy * Env.X_CELLS_COUNT;
+                                                for (int y = vy; y < Env.Y_CELLS_COUNT; y++)
+                                                for (int x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
                                                 {
                                                     if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
                                                     {
@@ -400,7 +583,7 @@ namespace Game.Unsafe
                                             {
                                                 int pos = 0;
                                                 for (int y = 0; y <= vy; y++)
-                                                for (int x = 0; x < 31; x++, pos++)
+                                                for (int x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
                                                 {
                                                     if ((that->territory[pos] & TERRITORY_OWNER_MASK) == k)
                                                     {
@@ -431,7 +614,7 @@ namespace Game.Unsafe
             {
                 var players = (UnsafePlayer*)that->players;
                 var p = players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
@@ -464,7 +647,7 @@ namespace Game.Unsafe
                 }
 
                 p = players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
@@ -483,13 +666,13 @@ namespace Game.Unsafe
                 }
 
                 p = players;
-                for (int i = 0; i < 6 - 1; i++, p++)
+                for (int i = 0; i < that->playersCount - 1; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
 
                     var pk = p + 1;
-                    for (int k = i + 1; k < 6; k++, pk++)
+                    for (int k = i + 1; k < that->playersCount; k++, pk++)
                     {
                         if (pk->status == UnsafePlayer.STATUS_ELIMINATED)
                             continue;
@@ -550,9 +733,9 @@ namespace Game.Unsafe
         {
             fixed (UnsafeState* that = &this)
             {
-                capture->Clear();
+                capture->Clear(that);
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status != UnsafePlayer.STATUS_ACTIVE)
                         continue;
@@ -572,7 +755,7 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
@@ -590,7 +773,7 @@ namespace Game.Unsafe
             fixed (UnsafeState* that = &this)
             {
                 var p = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < that->playersCount; i++, p++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
@@ -610,30 +793,42 @@ namespace Game.Unsafe
             switch (dir)
             {
                 case UnsafePlayer.DIR_UP:
-                    var result = prev + 31;
-                    if (result >= 31 * 31)
+                    var result = prev + Env.X_CELLS_COUNT;
+                    if (result >= Env.CELLS_COUNT)
                         return ushort.MaxValue;
                     return (ushort)result;
 
                 case UnsafePlayer.DIR_LEFT:
-                    if (prev % 31 == 0)
+                    if (prev % Env.X_CELLS_COUNT == 0)
                         return ushort.MaxValue;
                     return (ushort)(prev - 1);
 
                 case UnsafePlayer.DIR_DOWN:
-                    result = prev - 31;
+                    result = prev - Env.X_CELLS_COUNT;
                     if (result < 0)
                         return ushort.MaxValue;
                     return (ushort)result;
 
                 case UnsafePlayer.DIR_RIGHT:
-                    if (prev % 31 == 31 - 1)
+                    if (prev % Env.X_CELLS_COUNT == Env.X_CELLS_COUNT - 1)
                         return ushort.MaxValue;
                     return (ushort)(prev + 1);
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort ToCoord(V v)
+        {
+            return (ushort)(v.X + v.Y * Env.X_CELLS_COUNT);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static V ToV(ushort c)
+        {
+            return V.Get(c % Env.X_CELLS_COUNT, c / Env.X_CELLS_COUNT);
         }
     }
 }

@@ -13,8 +13,6 @@ namespace Game.Fast
 
         public bool isGameOver;
 
-        public int curPlayer;
-
         public int time;
         public int playersLeft;
 
@@ -83,6 +81,14 @@ namespace Game.Fast
             const string tc = "ABCDEF";
             using (var writer = new StringWriter())
             {
+                writer.WriteLine($"score: {string.Join(",", players.Select(x => x.score))}");
+                writer.WriteLine($"territory: {string.Join(",", players.Select(x => x.territory))}");
+                writer.WriteLine($"nitroLeft: {string.Join(",", players.Select(x => x.nitroLeft))}");
+                writer.WriteLine($"slowLeft: {string.Join(",", players.Select(x => x.slowLeft))}");
+                writer.WriteLine($"nitrosCollected: {string.Join(",", players.Select(x => x.nitrosCollected))}");
+                writer.WriteLine($"slowsCollected: {string.Join(",", players.Select(x => x.slowsCollected))}");
+                writer.WriteLine($"opponentTerritoryCaptured: {string.Join(",", players.Select(x => x.opponentTerritoryCaptured))}");
+                writer.WriteLine($"lineCount: {string.Join(",", players.Select(x => x.lineCount))}");
                 for (int y = config.y_cells_count - 1; y >= 0; y--)
                 {
                     for (int x = 0; x < config.x_cells_count; x++)
@@ -160,17 +166,10 @@ namespace Game.Fast
             {
                 this.config = config;
 
-                players = new FastPlayer[6];
+                players = new FastPlayer[input.players.Count];
 
                 territory = new byte[config.x_cells_count * config.y_cells_count];
                 lines = new byte[config.y_cells_count * config.x_cells_count];
-
-                if (int.TryParse(my, out curPlayer))
-                    curPlayer--;
-                else
-                    curPlayer = (1 + input.players.Count) * input.players.Count / 2
-                                - input.players.Sum(x => int.TryParse(x.Key, out var id) ? id : 0)
-                                - 1;
 
                 undos = new UndoDataPool(players.Length, config);
             }
@@ -188,9 +187,11 @@ namespace Game.Fast
                 lines[c] = 0;
             }
 
+            var keys = new[] {my}.Concat(input.players.Keys.Where(k => k != my)).ToList();
+            
             for (var i = 0; i < players.Length; i++)
             {
-                var key = i == curPlayer ? my : (i + 1).ToString();
+                var key = i < keys.Count ? keys[i] : "unknown";
 
                 if (players[i] == null)
                 {
@@ -226,7 +227,7 @@ namespace Game.Fast
                     else
                         players[i].pos = NextCoord(players[i].arrivePos, (Direction)(((int)(playerData.direction ?? throw new InvalidOperationException()) + 2) % 4));
 
-                    players[i].status = playerData.direction == null && i != curPlayer
+                    players[i].status = playerData.direction == null && i != 0
                         ? PlayerStatus.Broken
                         : PlayerStatus.Active;
 
@@ -375,7 +376,7 @@ namespace Game.Fast
                         {
                             if (bonuses[b].type == BonusType.N)
                             {
-                                var bonusTime = i == curPlayer ? 10 : 50;
+                                var bonusTime = i == 0 ? 10 : 50;
                                 if (players[i].nitroLeft > 0)
                                     players[i].nitroLeft += bonusTime;
                                 else
@@ -385,7 +386,7 @@ namespace Game.Fast
                             }
                             else if (bonuses[b].type == BonusType.S)
                             {
-                                var bonusTime = i == curPlayer ? 50 : 10;
+                                var bonusTime = i == 0 ? 50 : 10;
                                 if (players[i].slowLeft > 0)
                                     players[i].slowLeft += bonusTime; // random 10..50
                                 else

@@ -190,11 +190,11 @@ namespace Game.Strategies
                                 {
                                     if (state.bonuses[b].type == BonusType.S)
                                     {
-                                        slowLeft += player == state.curPlayer ? 50 : 10;
+                                        slowLeft += player == 0 ? 50 : 10;
                                     }
                                     else if (state.bonuses[b].type == BonusType.N)
                                     {
-                                        nitroLeft += player == state.curPlayer ? 10 : 50;
+                                        nitroLeft += player == 0 ? 10 : 50;
                                     }
                                 }
                             }

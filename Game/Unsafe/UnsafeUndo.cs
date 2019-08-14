@@ -1,18 +1,18 @@
 using System.Runtime.CompilerServices;
+using Game.Protocol;
 
 namespace Game.Unsafe
 {
     public unsafe struct UnsafeUndo
     {
-        private const int longsToCopy = 31 * 31 / 8;
+        private const int longsToCopy = Env.CELLS_COUNT / 8;
 
-        public byte mask;
         public ushort time;
         public fixed byte players[6 * UnsafePlayer.Size];
         public fixed byte prevTerritory[9];
         public fixed ushort prevTerritoryPos[9];
         public byte prevTerritoryCount;
-        public fixed byte territory[31 * 31];
+        public fixed byte territory[Env.CELLS_COUNT];
         public byte territoryChanged;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -22,11 +22,10 @@ namespace Game.Unsafe
             {
                 that->territoryChanged = 0;
                 that->time = state->time;
-                that->mask = state->mask;
                 that->prevTerritoryCount = 0;
                 var p = (UnsafePlayer*)state->players;
                 var pu = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++, pu++)
+                for (int i = 0; i < state->playersCount; i++, p++, pu++)
                 {
                     if (p->status == UnsafePlayer.STATUS_ELIMINATED)
                         pu->status = UnsafePlayer.STATUS_ELIMINATED;
@@ -42,7 +41,7 @@ namespace Game.Unsafe
             fixed (UnsafeUndo* that = &this)
             {
                 var p = (UnsafePlayer*)state->players;
-                for (int i = 0; i < 6; i++, p++)
+                for (int i = 0; i < state->playersCount; i++, p++)
                 {
                     if (p->status != UnsafePlayer.STATUS_ELIMINATED && p->arrivePos != ushort.MaxValue)
                     {
@@ -86,7 +85,7 @@ namespace Game.Unsafe
             {
                 var p = (UnsafePlayer*)state->players;
                 var pu = (UnsafePlayer*)that->players;
-                for (int i = 0; i < 6; i++, p++, pu++)
+                for (int i = 0; i < state->playersCount; i++, p++, pu++)
                 {
                     if (pu->status == UnsafePlayer.STATUS_ELIMINATED)
                         continue;
@@ -108,7 +107,6 @@ namespace Game.Unsafe
                 }
 
                 state->time = that->time;
-                state->mask = that->mask;
             }
         }
     }
