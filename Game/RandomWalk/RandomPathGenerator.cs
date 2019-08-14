@@ -4,7 +4,7 @@ using Game.Helpers;
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.Strategies
+namespace Game.RandomWalk
 {
     public class RandomPathGenerator
     {

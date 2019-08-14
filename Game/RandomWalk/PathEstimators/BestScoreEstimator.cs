@@ -1,8 +1,8 @@
 using Game.Sim;
 
-namespace Game.Strategies
+namespace Game.RandomWalk.PathEstimators
 {
-    public class BestScoreEstimator : IEstimator
+    public class BestScoreEstimator : IPathEstimator
     {
         public void Before(State state, int player)
         {

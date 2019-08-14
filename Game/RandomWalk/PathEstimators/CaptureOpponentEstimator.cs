@@ -1,9 +1,9 @@
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.Strategies
+namespace Game.RandomWalk.PathEstimators
 {
-    public class CaptureOpponentEstimator : IEstimator
+    public class CaptureOpponentEstimator : IPathEstimator
     {
         private int prevCaptured;
         private int prevScore;

@@ -1,22 +1,25 @@
 using System;
 using Game.Helpers;
 using Game.Protocol;
+using Game.RandomWalk.PathEstimators;
+using Game.RandomWalk.StartPathStrategies;
 using Game.Sim;
 using Game.Sim.Undo;
+using Game.Strategies;
 
-namespace Game.Strategies
+namespace Game.RandomWalk
 {
     public class RandomWalkAi : IAi
     {
         private readonly IStartPathStrategy startPathStrategy;
-        private readonly IEstimator estimator;
+        private readonly IPathEstimator estimator;
         private readonly RandomPathGenerator randomPath = new RandomPathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly StateBackup backup = new StateBackup();
         private PathBuilder[] paths;
         private Direction[] commands;
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy, IEstimator estimator, bool walkOnTerritory)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool walkOnTerritory)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;

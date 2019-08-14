@@ -1,7 +1,7 @@
 ﻿using Game.Helpers;
 using Game.Protocol;
 
-namespace Game
+namespace Game.Strategies
 {
 	public interface IStrategy
 	{
