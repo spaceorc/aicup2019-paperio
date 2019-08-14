@@ -247,7 +247,7 @@ namespace Game.Unsafe
 
                 CheckIntermediateCollisions();
 
-                Capture(capture, tickScores);
+                Capture(capture, tickScores, undo);
 
                 CheckLoss(tickScores, capture);
 
@@ -255,7 +255,7 @@ namespace Game.Unsafe
 
                 CaptureBonuses(tickScores, capture, undo);
 
-                capture->ApplyTo(that, tickScores, undo);
+                capture->ApplyTo(that, tickScores);
 
                 MoveDone();
 
@@ -729,7 +729,7 @@ namespace Game.Unsafe
             }
         }
 
-        private void Capture(UnsafeCapture* capture, ushort* tickScores)
+        private void Capture(UnsafeCapture* capture, ushort* tickScores, UnsafeUndo* undo)
         {
             fixed (UnsafeState* that = &this)
             {
@@ -743,7 +743,7 @@ namespace Game.Unsafe
                     if (p->arriveTime == 0 && p->arrivePos != ushort.MaxValue)
                     {
                         // Capture
-                        capture->Capture(that, i);
+                        capture->Capture(that, i, undo);
                         tickScores[i] = (ushort)(tickScores[i] + Env.NEUTRAL_TERRITORY_SCORE * capture->captureCount[i]);
                     }
                 }

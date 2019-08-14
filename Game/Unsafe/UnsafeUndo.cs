@@ -16,7 +16,7 @@ namespace Game.Unsafe
         public byte territoryChanged;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void BeforeCommands(UnsafeState* state)
+        public void Prepare(UnsafeState* state)
         {
             fixed (UnsafeUndo* that = &this)
             {
@@ -92,7 +92,7 @@ namespace Game.Unsafe
                     *p = *pu;
                 }
 
-                if (territoryChanged == 0)
+                if (territoryChanged == 1)
                 {
                     var pl = (long*)state->territory;
                     var plu = (long*)that->territory;

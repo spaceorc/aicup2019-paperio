@@ -19,7 +19,7 @@ namespace Game.BruteForce
         {
             this.estimator = estimator;
             this.maxDepth = maxDepth;
-            commands = new Direction[6 * maxDepth];
+            commands = new Direction[6 * maxDepth * 2];
         }
 
         public void Alphabeta(ITimeManager timeManager, FastState state, int player)
@@ -58,12 +58,17 @@ namespace Game.BruteForce
             if (timeManager.IsExpired)
                 return double.NegativeInfinity;
 
-            if (depth == 0 || state.isGameOver || state.players[player].status == PlayerStatus.Eliminated || activePlayer == state.players.Length)
+            if (state.isGameOver 
+                || state.players[player].status == PlayerStatus.Eliminated 
+                || depth == 0 && activePlayer == player)
             {
                 estimations++;
                 var score = estimator.Estimate(state, player);
                 return score;
             }
+            
+            if (activePlayer == player)
+                depth--;
 
             var top = state.players[activePlayer].dir == null ? 6 : 5;
 
@@ -108,7 +113,7 @@ namespace Game.BruteForce
                     commandsStart += 6;
                 }
 
-                var score = Alphabeta(timeManager, state, player, depth - 1, nextPlayer, a, b, out _, commandsStart);
+                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, out _, commandsStart);
 
                 if (undo != null)
                 {

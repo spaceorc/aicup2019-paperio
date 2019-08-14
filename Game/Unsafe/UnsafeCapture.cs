@@ -78,7 +78,7 @@ namespace Game.Unsafe
             }
         }
 
-        public void ApplyTo(UnsafeState* state, ushort* tickScores, UnsafeUndo* undo)
+        public void ApplyTo(UnsafeState* state, ushort* tickScores)
         {
             fixed (UnsafeCapture* that = &this)
             {
@@ -106,9 +106,6 @@ namespace Game.Unsafe
                                 }
 
                                 p->territory++;
-                                if (undo != null)
-                                    undo->BeforeTerritoryChange(state);
-
                                 state->territory[v] = (byte)(state->territory[v] & ~UnsafeState.TERRITORY_OWNER_MASK | player);
                             }
                         }
@@ -117,7 +114,7 @@ namespace Game.Unsafe
             }
         }
 
-        public void Capture(UnsafeState* state, int player)
+        public void Capture(UnsafeState* state, int player, UnsafeUndo* undo)
         {
             fixed (UnsafeCapture* that = &this)
             {
@@ -193,6 +190,9 @@ namespace Game.Unsafe
                     }
                 }
 
+                if (undo != null)
+                    undo->BeforeTerritoryChange(state);
+                
                 for (ushort c = 0; c < Env.CELLS_COUNT; c++)
                 {
                     if (that->used[c] != usedGen && (state->territory[c] & UnsafeState.TERRITORY_OWNER_MASK) != player)

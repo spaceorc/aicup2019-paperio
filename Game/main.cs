@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Game.BruteForce;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
