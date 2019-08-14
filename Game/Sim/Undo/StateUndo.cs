@@ -3,7 +3,7 @@ using Game.Protocol;
 
 namespace Game.Sim.Undo
 {
-    public class UndoData
+    public class StateUndo
     {
         private bool isGameOver;        
         private int time;
@@ -11,13 +11,13 @@ namespace Game.Sim.Undo
         private int territoryVersion;
         private bool captured;
         private readonly byte[] territory;
-        private readonly UndoPlayerData[] undoPlayerDatas;
+        private readonly PlayerUndo[] undoPlayerDatas;
 
-        public UndoData(int playerCount)
+        public StateUndo(int playerCount)
         {
-            undoPlayerDatas = new UndoPlayerData[playerCount];
+            undoPlayerDatas = new PlayerUndo[playerCount];
             for (var i = 0; i < undoPlayerDatas.Length; i++)
-                undoPlayerDatas[i] = new UndoPlayerData();
+                undoPlayerDatas[i] = new PlayerUndo();
             territory = new byte[Env.CELLS_COUNT];
         }
 

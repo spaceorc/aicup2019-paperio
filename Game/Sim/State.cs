@@ -25,7 +25,7 @@ namespace Game.Sim
 
         public TerritoryCapture capture = new TerritoryCapture();
 
-        public UndoDataPool undos;
+        public UndoPool undos;
 
         public void Reset()
         {
@@ -167,7 +167,7 @@ namespace Game.Sim
                 territory = new byte[Env.CELLS_COUNT];
                 lines = new byte[Env.Y_CELLS_COUNT * Env.X_CELLS_COUNT];
 
-                undos = new UndoDataPool(players.Length);
+                undos = new UndoPool(players.Length);
             }
 
             isGameOver = false;
@@ -276,15 +276,15 @@ namespace Game.Sim
                 : throw new InvalidOperationException($"Unknown direction: {direction}");
         }
 
-        public void Undo(UndoData undo)
+        public void Undo(StateUndo undo)
         {
             undo.Undo(this);
             undos.Return(undo);
         }
 
-        public UndoData NextTurn(Direction[] commands, bool withUndo, int commandsStart = 0)
+        public StateUndo NextTurn(Direction[] commands, bool withUndo, int commandsStart = 0)
         {
-            UndoData undo = null;
+            StateUndo undo = null;
             if (withUndo)
             {
                 undo = undos.Get();

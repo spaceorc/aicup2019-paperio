@@ -2,7 +2,7 @@ using Game.Protocol;
 
 namespace Game.Sim.Undo
 {
-    public class UndoPlayerData
+    public class PlayerUndo
     {
         private PlayerStatus status;
         private ushort pos;
@@ -21,7 +21,7 @@ namespace Game.Sim.Undo
         private int lineCount;
         private readonly ushort[] line;
 
-        public UndoPlayerData()
+        public PlayerUndo()
         {
             line = new ushort[Env.CELLS_COUNT];
         }

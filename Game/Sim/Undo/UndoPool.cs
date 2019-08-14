@@ -3,26 +3,26 @@ using System.Runtime.CompilerServices;
 
 namespace Game.Sim.Undo
 {
-    public class UndoDataPool
+    public class UndoPool
     {
         private readonly int playerCount;
-        private readonly Stack<UndoData> stack = new Stack<UndoData>();
+        private readonly Stack<StateUndo> stack = new Stack<StateUndo>();
 
-        public UndoDataPool(int playerCount)
+        public UndoPool(int playerCount)
         {
             this.playerCount = playerCount;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public UndoData Get()
+        public StateUndo Get()
         {
             return stack.Count == 0
-                ? new UndoData(playerCount)
+                ? new StateUndo(playerCount)
                 : stack.Pop();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Return(UndoData undo)
+        public void Return(StateUndo undo)
         {
             stack.Push(undo);
         }

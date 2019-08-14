@@ -92,7 +92,7 @@ namespace Game.BruteForce
                     break;
                 }
 
-                UndoData undo = null;
+                StateUndo undo = null;
                 if (nextPlayer == state.players.Length)
                 {
                     undo = state.NextTurn(commands, withUndo: true, commandsStart:commandsStart);

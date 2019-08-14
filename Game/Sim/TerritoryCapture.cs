@@ -84,7 +84,7 @@ namespace Game.Sim
             return mask & ~(1 << player);
         }
 
-        public void ApplyTo(State state, UndoData undo)
+        public void ApplyTo(State state, StateUndo undo)
         {
             for (var player = 0; player < territoryCaptureCount.Length; player++)
             {
