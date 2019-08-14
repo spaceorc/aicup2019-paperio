@@ -97,7 +97,7 @@ namespace Game.RandomWalk
                                 for (var d = 3; d <= 5; d++)
                                 {
                                     var nd = (Direction)(((int)state.players[i].dir.Value + d) % 4);
-                                    var next = state.NextCoord(state.players[i].arrivePos, nd);
+                                    var next = state.players[i].arrivePos.NextCoord(nd);
                                     if (next != ushort.MaxValue)
                                     {
                                         commands[i] = nd;
@@ -153,7 +153,7 @@ namespace Game.RandomWalk
                 {
                     for (var d = 0; d < 4; d++)
                     {
-                        var next = state.NextCoord(state.players[player].arrivePos, (Direction)d);
+                        var next = state.players[player].arrivePos.NextCoord((Direction)d);
                         if (next != ushort.MaxValue)
                         {
                             validDir = (Direction)d;
@@ -170,7 +170,7 @@ namespace Game.RandomWalk
                         var nd = (Direction)(((int)state.players[player].dir.Value + 3 + sd + d) % 4);
                         if (nd == (Direction)(((int)state.players[player].dir.Value + 2) % 4))
                             continue;
-                        var next = state.NextCoord(state.players[player].arrivePos, nd);
+                        var next = state.players[player].arrivePos.NextCoord(nd);
                         if (next != ushort.MaxValue)
                         {
                             validDir = nd;
@@ -211,7 +211,7 @@ namespace Game.RandomWalk
                     for (var d = 3; d <= 5; d++)
                     {
                         var nd = (Direction)(((int)state.players[player].dir.Value + d) % 4);
-                        var ne = state.NextCoord(state.players[player].arrivePos, nd);
+                        var ne = state.players[player].arrivePos.NextCoord(nd);
                         if (ne != ushort.MaxValue)
                         {
                             if (state.territory[ne] == player)
@@ -228,13 +228,13 @@ namespace Game.RandomWalk
                                             var timeToCatch = state.players[player].shiftTime;
                                             if (timeToCatch < timeToOwn)
                                             {
-                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
+                                                result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
                                                 return true;
                                             }
                                         }
                                         else
                                         {
-                                            result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
+                                            result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha line! {state.players[player].arrivePos}->{ne}"};
                                             return true;
                                         }
                                     }
@@ -243,21 +243,21 @@ namespace Game.RandomWalk
                                     {
                                         if (state.players[other].arriveTime > 0)
                                         {
-                                            result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arriving player! {state.players[player].arrivePos}->{ne}"};
+                                            result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha arriving player! {state.players[player].arrivePos}->{ne}"};
                                             return true;
                                         }
 
                                         if (state.players[other].dir != null)
                                         {
-                                            if (state.NextCoord(ne, state.players[other].dir.Value) == state.players[player].arrivePos)
+                                            if (ne.NextCoord(state.players[other].dir.Value) == state.players[player].arrivePos)
                                             {
-                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha arrived player! {state.players[player].arrivePos}->{ne}"};
+                                                result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha arrived player! {state.players[player].arrivePos}->{ne}"};
                                                 return true;
                                             }
 
                                             if (state.players[other].shiftTime > state.players[player].shiftTime)
                                             {
-                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow arrived player! {state.players[player].arrivePos}->{ne}"};
+                                                result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha slow arrived player! {state.players[player].arrivePos}->{ne}"};
                                                 return true;
                                             }
                                         }
@@ -267,15 +267,15 @@ namespace Game.RandomWalk
                                     {
                                         if (state.players[other].dir != null)
                                         {
-                                            if (state.NextCoord(state.players[player].arrivePos, state.players[other].dir.Value) != ne)
+                                            if (state.players[player].arrivePos.NextCoord(state.players[other].dir.Value) != ne)
                                             {
-                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha escaping player! {state.players[player].arrivePos}->{ne}"};
+                                                result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha escaping player! {state.players[player].arrivePos}->{ne}"};
                                                 return true;
                                             }
 
                                             if (state.players[player].shiftTime < state.players[other].arriveTime)
                                             {
-                                                result = new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, ne), Debug = $"Gotcha slow escaping player! {state.players[player].arrivePos}->{ne}"};
+                                                result = new RequestOutput {Command = state.players[player].arrivePos.DirTo(ne), Debug = $"Gotcha slow escaping player! {state.players[player].arrivePos}->{ne}"};
                                                 return true;
                                             }
                                         }

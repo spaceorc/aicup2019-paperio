@@ -76,7 +76,7 @@ namespace Game.BruteForce
             for (byte d = 3; d <= top; d++)
             {
                 var action = (Direction)(((byte)(state.players[activePlayer].dir ?? Direction.Up) + d) % 4);
-                var ne = state.NextCoord(state.players[activePlayer].arrivePos, action);
+                var ne = state.players[activePlayer].arrivePos.NextCoord(action);
                 if (ne == ushort.MaxValue || (state.lines[ne] & (1 << activePlayer)) != 0)
                     continue;
                 

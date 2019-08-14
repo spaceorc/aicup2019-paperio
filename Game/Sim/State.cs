@@ -10,69 +10,17 @@ namespace Game.Sim
     public class State
     {
         public bool isGameOver;
-
         public int time;
         public int playersLeft;
-
         public int territoryVersion;
         public byte[] territory;
         public byte[] lines;
-
         public int bonusCount;
         public Bonus[] bonuses;
-
         public Player[] players;
 
-        public TerritoryCapture capture = new TerritoryCapture();
-
-        public UndoPool undos;
-
-        public void Reset()
-        {
-            players = null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ushort NextCoord(ushort prev, Direction dir)
-        {
-            switch (dir)
-            {
-                case Direction.Up:
-                    var result = prev + Env.X_CELLS_COUNT;
-                    if (result >= Env.CELLS_COUNT)
-                        return ushort.MaxValue;
-                    return (ushort)result;
-
-                case Direction.Left:
-                    if (prev % Env.X_CELLS_COUNT == 0)
-                        return ushort.MaxValue;
-                    return (ushort)(prev - 1);
-
-                case Direction.Down:
-                    result = prev - Env.X_CELLS_COUNT;
-                    if (result < 0)
-                        return ushort.MaxValue;
-                    return (ushort)result;
-
-                case Direction.Right:
-                    if (prev % Env.X_CELLS_COUNT == Env.X_CELLS_COUNT - 1)
-                        return ushort.MaxValue;
-                    return (ushort)(prev + 1);
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(dir), dir, null);
-            }
-        }
-
-        public ushort ToCoord(V v)
-        {
-            return (ushort)(v.X + v.Y * Env.X_CELLS_COUNT);
-        }
-
-        public V ToV(ushort c)
-        {
-            return V.Get(c % Env.X_CELLS_COUNT, c / Env.X_CELLS_COUNT);
-        }
+        private readonly TerritoryCapture capture = new TerritoryCapture();
+        private UndoPool undos;
 
         public string Print(bool territoryOnly = false)
         {
@@ -184,7 +132,7 @@ namespace Game.Sim
             }
 
             var keys = new[] {my}.Concat(input.players.Keys.Where(k => k != my)).ToList();
-            
+
             for (var i = 0; i < players.Length; i++)
             {
                 var key = i < keys.Count ? keys[i] : "unknown";
@@ -217,11 +165,11 @@ namespace Game.Sim
                         arriveTime++;
                     }
 
-                    players[i].arrivePos = ToCoord(v.ToCellCoords(Env.WIDTH));
+                    players[i].arrivePos = v.ToCellCoords(Env.WIDTH).ToCoord();
                     if (arriveTime == 0)
                         players[i].pos = players[i].arrivePos;
                     else
-                        players[i].pos = NextCoord(players[i].arrivePos, (Direction)(((int)(playerData.direction ?? throw new InvalidOperationException()) + 2) % 4));
+                        players[i].pos = players[i].arrivePos.NextCoord((Direction)(((int)(playerData.direction ?? throw new InvalidOperationException()) + 2) % 4));
 
                     players[i].status = playerData.direction == null && i != 0
                         ? PlayerStatus.Broken
@@ -246,14 +194,14 @@ namespace Game.Sim
 
                     for (var k = 0; k < playerData.lines.Length; k++)
                     {
-                        var lv = ToCoord(playerData.lines[k].ToCellCoords(Env.WIDTH));
+                        var lv = playerData.lines[k].ToCellCoords(Env.WIDTH).ToCoord();
                         players[i].line[k] = lv;
                         lines[lv] = (byte)(lines[lv] | (1 << i));
                     }
 
                     for (var k = 0; k < playerData.territory.Length; k++)
                     {
-                        var lv = ToCoord(playerData.territory[k].ToCellCoords(Env.WIDTH));
+                        var lv = playerData.territory[k].ToCellCoords(Env.WIDTH).ToCoord();
                         territory[lv] = (byte)i;
                     }
                 }
@@ -291,6 +239,46 @@ namespace Game.Sim
                 undo.Before(this);
             }
 
+            ApplyCommands(commands, commandsStart);
+
+            var timeDelta = RenewArriveTime();
+
+            time += timeDelta;
+            if (time > Env.MAX_TICK_COUNT)
+            {
+                isGameOver = true;
+                if (withUndo)
+                    undo.After(this);
+
+                return undo;
+            }
+
+            Move(timeDelta);
+
+            CheckIntermediateCollisions();
+
+            Capture();
+
+            CheckLoss();
+
+            CheckIsAte();
+
+            CaptureBonuses(undo);
+
+            capture.ApplyTo(this, undo);
+
+            MoveDone();
+
+            Done();
+
+            if (withUndo)
+                undo.After(this);
+            return undo;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ApplyCommands(Direction[] commands, int commandsStart)
+        {
             for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
@@ -309,24 +297,130 @@ namespace Game.Sim
                     players[i].dir = commands[commandsStart + i];
                 }
             }
+        }
 
-            var timeDelta = RenewArriveTime();
-
-            time += timeDelta;
-            if (time > Env.MAX_TICK_COUNT)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int RenewArriveTime()
+        {
+            var minArriveTime = int.MaxValue;
+            for (var i = 0; i < players.Length; i++)
             {
-                isGameOver = true;
-                if (withUndo)
-                    undo.After(this);
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
+                    continue;
 
-                return undo;
+                if (players[i].dir != null)
+                {
+                    if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
+                    {
+                        players[i].arriveTime = players[i].shiftTime;
+                        players[i].arrivePos = players[i].arrivePos.NextCoord(players[i].dir.Value);
+                    }
+                }
+
+                if (players[i].arriveTime < minArriveTime)
+                    minArriveTime = players[i].arriveTime;
             }
 
-            Move(timeDelta);
+            if (minArriveTime == 0)
+                minArriveTime = 1;
 
-            CheckIntermediateCollisions();
+            return minArriveTime;
+        }
 
-            // Main
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Move(int timeDelta)
+        {
+            for (var i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                players[i].Move(timeDelta);
+            }
+        }
+
+        private void CheckIntermediateCollisions()
+        {
+            for (var i = 0; i < players.Length - 1; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                for (var k = i + 1; k < players.Length; k++)
+                {
+                    if (players[k].status == PlayerStatus.Eliminated)
+                        continue;
+
+                    var collides = false;
+                    if (players[i].arrivePos == players[k].arrivePos)
+                    {
+                        if (players[i].arriveTime == 0)
+                        {
+                            if (players[k].arriveTime == 0)
+                                collides = true;
+                            else if (players[k].shiftTime - players[k].arriveTime > 1)
+                                collides = true;
+                        }
+                        else if (players[k].arriveTime == 0)
+                        {
+                            if (players[i].shiftTime - players[i].arriveTime > 1)
+                                collides = true;
+                        }
+                    }
+                    else
+                    {
+                        if (players[i].arrivePos == players[k].pos)
+                        {
+                            if (players[k].arrivePos == players[i].pos)
+                                collides = true;
+                            else if (players[k].arriveTime > 0 || players[i].shiftTime - players[i].arriveTime > 1)
+                            {
+                                if (players[i].dir != players[k].dir)
+                                    collides = true;
+                                else
+                                {
+                                    var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                    var distArrive2 = players[k].arriveTime * players[i].shiftTime;
+                                    collides = distArrive1 < distArrive2;
+                                }
+                            }
+                        }
+                        else if (players[k].arrivePos == players[i].pos)
+                        {
+                            if (players[i].arriveTime > 0 || players[k].shiftTime - players[k].arriveTime > 1)
+                            {
+                                if (players[i].dir != players[k].dir)
+                                    collides = true;
+                                else
+                                {
+                                    var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                    var distArrive2 = players[k].arriveTime * players[i].shiftTime;
+                                    collides = distArrive2 < distArrive1;
+                                }
+                            }
+                        }
+                    }
+
+                    if (collides)
+                    {
+                        if (players[i].lineCount >= players[k].lineCount)
+                        {
+                            players[i].status = PlayerStatus.Eliminated;
+                            players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
+                        }
+
+                        if (players[k].lineCount >= players[i].lineCount)
+                        {
+                            players[k].status = PlayerStatus.Eliminated;
+                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void Capture()
+        {
             capture.Clear();
             for (var i = 0; i < players.Length; i++)
             {
@@ -335,7 +429,6 @@ namespace Game.Sim
 
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
-                    // Capture
                     capture.Capture(this, i);
                     if (capture.CapturedCountBy(i) > 0)
                     {
@@ -350,11 +443,146 @@ namespace Game.Sim
                     }
                 }
             }
+        }
 
-            CheckLoss();
+        private void CheckLoss()
+        {
+            for (var i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
 
-            CheckIsAte();
+                if (players[i].status != PlayerStatus.Loser)
+                {
+                    if (players[i].territory == 0)
+                        players[i].status = PlayerStatus.Loser;
+                    else if (players[i].arrivePos == ushort.MaxValue)
+                        players[i].status = PlayerStatus.Loser;
+                    else if (players[i].arriveTime == 0 && (lines[players[i].arrivePos] & (1 << i)) != 0)
+                        players[i].status = PlayerStatus.Loser;
+                }
 
+                for (var k = i + 1; k < players.Length; k++)
+                {
+                    if (players[k].status == PlayerStatus.Eliminated)
+                        continue;
+
+                    if (players[k].arriveTime == 0 && players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
+                    {
+                        players[i].status = PlayerStatus.Loser;
+                        players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
+                        players[k].tickScore += Env.LINE_KILL_SCORE;
+                    }
+
+                    if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
+                    {
+                        players[k].status = PlayerStatus.Loser;
+                        players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
+                        players[i].tickScore += Env.LINE_KILL_SCORE;
+                    }
+                }
+            }
+
+            for (var i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.CapturedCountBy(i) == 0)
+                    players[i].UpdateLines(i, this);
+            }
+
+            for (var i = 0; i < players.Length - 1; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
+
+                for (var k = i + 1; k < players.Length; k++)
+                {
+                    if (players[k].status == PlayerStatus.Eliminated)
+                        continue;
+
+                    if ((players[i].status == PlayerStatus.Loser || players[i].lineCount < players[k].lineCount)
+                        && (players[k].status == PlayerStatus.Loser || players[k].lineCount < players[i].lineCount))
+                        continue;
+
+                    var collides = false;
+                    if (players[i].arrivePos == players[k].arrivePos)
+                        collides = true;
+                    else
+                    {
+                        if (players[i].arrivePos == players[k].pos && players[k].arriveTime > 0)
+                        {
+                            if (players[i].dir != players[k].dir)
+                                collides = true;
+                            else
+                            {
+                                var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                var distArrive2 = players[k].arriveTime * players[i].shiftTime;
+                                collides = distArrive1 < distArrive2;
+                            }
+                        }
+                        else if (players[k].arrivePos == players[i].pos && players[i].arriveTime > 0)
+                        {
+                            if (players[k].dir != players[i].dir)
+                                collides = true;
+                            else
+                            {
+                                var distArrive1 = players[i].arriveTime * players[k].shiftTime;
+                                var distArrive2 = players[k].arriveTime * players[i].shiftTime;
+                                collides = distArrive2 < distArrive1;
+                            }
+                        }
+                    }
+
+                    if (collides)
+                    {
+                        if (players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
+                        {
+                            players[i].status = PlayerStatus.Loser;
+                            players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
+                        }
+
+                        if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
+                        {
+                            players[k].status = PlayerStatus.Loser;
+                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CheckIsAte()
+        {
+            for (var i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Loser)
+                    continue;
+
+                var prevPosEatenBy = capture.PlayerEatenByMask(players[i].pos, i);
+                if (prevPosEatenBy != 0)
+                {
+                    if (players[i].arriveTime != 0)
+                    {
+                        players[i].status = PlayerStatus.Loser;
+                        players[i].killedBy = (byte)(players[i].killedBy | prevPosEatenBy);
+                    }
+                    else
+                    {
+                        var eatenBy = capture.PlayerEatenByMask(players[i].arrivePos, i);
+                        if ((eatenBy & prevPosEatenBy) != 0)
+                        {
+                            players[i].status = PlayerStatus.Loser;
+                            players[i].killedBy = (byte)(players[i].killedBy | (eatenBy & prevPosEatenBy));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CaptureBonuses(StateUndo undo)
+        {
             for (var i = 0; i < players.Length; i++)
             {
                 if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
@@ -396,14 +624,14 @@ namespace Game.Sim
                                 var v = players[i].arrivePos;
                                 while (true)
                                 {
-                                    v = NextCoord(v, players[i].dir.Value);
+                                    v = v.NextCoord(players[i].dir.Value);
                                     if (v == ushort.MaxValue)
                                         break;
                                     for (var k = 0; k < players.Length; k++)
                                     {
                                         if (k == i || players[k].status == PlayerStatus.Eliminated)
                                             continue;
-                                        if (players[k].arrivePos == v || (players[k].pos == v && players[k].arriveTime > 0))
+                                        if (players[k].arrivePos == v || players[k].pos == v && players[k].arriveTime > 0)
                                         {
                                             sawStatus |= 0xFFul << (k * 8);
                                             players[k].status = PlayerStatus.Loser;
@@ -519,11 +747,23 @@ namespace Game.Sim
                     }
                 }
             }
+        }
 
-            capture.ApplyTo(this, undo);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void MoveDone()
+        {
+            for (var i = 0; i < players.Length; i++)
+            {
+                if (players[i].status == PlayerStatus.Eliminated)
+                    continue;
 
-            MoveDone();
+                players[i].MoveDone();
+            }
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Done()
+        {
             playersLeft = 0;
             for (var i = 0; i < players.Length; i++)
             {
@@ -543,298 +783,6 @@ namespace Game.Sim
             }
 
             isGameOver = playersLeft == 0;
-
-            if (withUndo)
-                undo.After(this);
-            return undo;
-        }
-
-        private int RenewArriveTime()
-        {
-            var minArriveTime = int.MaxValue;
-            for (var i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Broken)
-                    continue;
-
-                if (players[i].dir != null)
-                {
-                    if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
-                    {
-                        players[i].arriveTime = players[i].shiftTime;
-                        players[i].arrivePos = NextCoord(players[i].arrivePos, players[i].dir.Value);
-                    }
-                }
-
-                if (players[i].arriveTime < minArriveTime)
-                    minArriveTime = players[i].arriveTime;
-            }
-
-            if (minArriveTime == 0)
-                minArriveTime = 1;
-
-            return minArriveTime;
-        }
-
-        private void Move(int timeDelta)
-        {
-            for (var i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                players[i].Move(timeDelta);
-            }
-        }
-
-        private void MoveDone()
-        {
-            for (var i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                players[i].MoveDone();
-            }
-        }
-
-        private void CheckIsAte()
-        {
-            for (var i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated || players[i].status == PlayerStatus.Loser)
-                    continue;
-
-                var prevPosEatenBy = capture.PlayerEatenByMask(players[i].pos, i);
-                if (prevPosEatenBy != 0)
-                {
-                    if (players[i].arriveTime != 0)
-                    {
-                        players[i].status = PlayerStatus.Loser;
-                        players[i].killedBy = (byte)(players[i].killedBy | prevPosEatenBy);
-                    }
-                    else
-                    {
-                        var eatenBy = capture.PlayerEatenByMask(players[i].arrivePos, i);
-                        if ((eatenBy & prevPosEatenBy) != 0)
-                        {
-                            players[i].status = PlayerStatus.Loser;
-                            players[i].killedBy = (byte)(players[i].killedBy | (eatenBy & prevPosEatenBy));
-                        }
-                    }
-                }
-            }
-        }
-
-        private void CheckLoss()
-        {
-            for (var i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                if (players[i].status != PlayerStatus.Loser)
-                {
-                    if (players[i].territory == 0)
-                        players[i].status = PlayerStatus.Loser;
-                    else if (players[i].arrivePos == ushort.MaxValue)
-                        players[i].status = PlayerStatus.Loser;
-                    else if (players[i].arriveTime == 0 && (lines[players[i].arrivePos] & (1 << i)) != 0)
-                        players[i].status = PlayerStatus.Loser;
-                }
-
-                for (var k = i + 1; k < players.Length; k++)
-                {
-                    if (players[k].status == PlayerStatus.Eliminated)
-                        continue;
-
-                    if (players[k].arriveTime == 0 && players[k].arrivePos != ushort.MaxValue && (lines[players[k].arrivePos] & (1 << i)) != 0)
-                    {
-                        players[i].status = PlayerStatus.Loser;
-                        players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
-                        players[k].tickScore += Env.LINE_KILL_SCORE;
-                    }
-
-                    if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && (lines[players[i].arrivePos] & (1 << k)) != 0)
-                    {
-                        players[k].status = PlayerStatus.Loser;
-                        players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
-                        players[i].tickScore += Env.LINE_KILL_SCORE;
-                    }
-                }
-            }
-
-            for (var i = 0; i < players.Length; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.CapturedCountBy(i) == 0)
-                    players[i].UpdateLines(i, this);
-            }
-
-            for (var i = 0; i < players.Length - 1; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                for (var k = i + 1; k < players.Length; k++)
-                {
-                    if (players[k].status == PlayerStatus.Eliminated)
-                        continue;
-
-                    if ((players[i].status == PlayerStatus.Loser || players[i].lineCount < players[k].lineCount)
-                        && (players[k].status == PlayerStatus.Loser || players[k].lineCount < players[i].lineCount))
-                        continue;
-
-                    var collides = false;
-                    if (players[i].arrivePos == players[k].arrivePos)
-                        collides = true;
-                    else
-                    {
-                        if (players[i].arrivePos == players[k].pos && players[k].arriveTime > 0)
-                        {
-                            if (players[i].dir != players[k].dir)
-                                collides = true;
-                            else
-                            {
-                                var distArrive1 = players[i].arriveTime * players[k].shiftTime;
-                                var distArrive2 = players[k].arriveTime * players[i].shiftTime;
-                                collides = distArrive1 < distArrive2;
-                            }
-                        }
-                        else if (players[k].arrivePos == players[i].pos && players[i].arriveTime > 0)
-                        {
-                            if (players[k].dir != players[i].dir)
-                                collides = true;
-                            else
-                            {
-                                var distArrive1 = players[i].arriveTime * players[k].shiftTime;
-                                var distArrive2 = players[k].arriveTime * players[i].shiftTime;
-                                collides = distArrive2 < distArrive1;
-                            }
-                        }
-                    }
-
-                    if (collides)
-                    {
-                        if (players[i].status != PlayerStatus.Loser && players[i].lineCount >= players[k].lineCount)
-                        {
-                            players[i].status = PlayerStatus.Loser;
-                            players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
-                        }
-
-                        if (players[k].status != PlayerStatus.Loser && players[k].lineCount >= players[i].lineCount)
-                        {
-                            players[k].status = PlayerStatus.Loser;
-                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
-                        }
-                    }
-                }
-            }
-        }
-
-        private void CheckIntermediateCollisions()
-        {
-            for (var i = 0; i < players.Length - 1; i++)
-            {
-                if (players[i].status == PlayerStatus.Eliminated)
-                    continue;
-
-                for (var k = i + 1; k < players.Length; k++)
-                {
-                    if (players[k].status == PlayerStatus.Eliminated)
-                        continue;
-
-                    var collides = false;
-                    if (players[i].arrivePos == players[k].arrivePos)
-                    {
-                        if (players[i].arriveTime == 0)
-                        {
-                            if (players[k].arriveTime == 0)
-                                collides = true;
-                            else if (players[k].shiftTime - players[k].arriveTime > 1)
-                                collides = true;
-                        }
-                        else if (players[k].arriveTime == 0)
-                        {
-                            if (players[i].shiftTime - players[i].arriveTime > 1)
-                                collides = true;
-                        }
-                    }
-                    else
-                    {
-                        if (players[i].arrivePos == players[k].pos)
-                        {
-                            if (players[k].arrivePos == players[i].pos)
-                                collides = true;
-                            else if (players[k].arriveTime > 0 || players[i].shiftTime - players[i].arriveTime > 1)
-                            {
-                                if (players[i].dir != players[k].dir)
-                                    collides = true;
-                                else
-                                {
-                                    var distArrive1 = players[i].arriveTime * players[k].shiftTime;
-                                    var distArrive2 = players[k].arriveTime * players[i].shiftTime;
-                                    collides = distArrive1 < distArrive2;
-                                }
-                            }
-                        }
-                        else if (players[k].arrivePos == players[i].pos)
-                        {
-                            if (players[i].arriveTime > 0 || players[k].shiftTime - players[k].arriveTime > 1)
-                            {
-                                if (players[i].dir != players[k].dir)
-                                    collides = true;
-                                else
-                                {
-                                    var distArrive1 = players[i].arriveTime * players[k].shiftTime;
-                                    var distArrive2 = players[k].arriveTime * players[i].shiftTime;
-                                    collides = distArrive2 < distArrive1;
-                                }
-                            }
-                        }
-                    }
-
-                    if (collides)
-                    {
-                        if (players[i].lineCount >= players[k].lineCount)
-                        {
-                            players[i].status = PlayerStatus.Eliminated;
-                            players[i].killedBy = (byte)(players[i].killedBy | (1 << k));
-                        }
-
-                        if (players[k].lineCount >= players[i].lineCount)
-                        {
-                            players[k].status = PlayerStatus.Eliminated;
-                            players[k].killedBy = (byte)(players[k].killedBy | (1 << i));
-                        }
-                    }
-                }
-            }
-        }
-
-        public Direction MakeDir(ushort prev, ushort next)
-        {
-            var diff = next - prev;
-            if (diff == 1)
-                return Direction.Right;
-            if (diff == -1)
-                return Direction.Left;
-            if (diff == Env.X_CELLS_COUNT)
-                return Direction.Up;
-            if (diff == -Env.X_CELLS_COUNT)
-                return Direction.Down;
-            throw new InvalidOperationException($"Bad cell diff: {diff}");
-        }
-
-        public int MDist(ushort a, ushort b)
-        {
-            var ax = a % Env.X_CELLS_COUNT;
-            var ay = a / Env.X_CELLS_COUNT;
-            var bx = b % Env.X_CELLS_COUNT;
-            var by = b / Env.X_CELLS_COUNT;
-            return Math.Abs(ax - bx) + Math.Abs(ay - by);
         }
     }
 }

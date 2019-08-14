@@ -17,7 +17,7 @@ namespace Game.RandomWalk.StartPathStrategies
                 {
                     for (var d = 0; d < 4; d++)
                     {
-                        var ne = state.NextCoord(target, (Direction)d);
+                        var ne = target.NextCoord((Direction)d);
                         if (ne != ushort.MaxValue)
                         {
                             if (state.territory[ne] == player)
@@ -47,7 +47,7 @@ namespace Game.RandomWalk.StartPathStrategies
                 next = cur;
 
             if (next != bestTarget && state.territory[next] == player)
-                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = $"Goto nearest {state.players[player].arrivePos}->{bestTarget} with estimation {bestEstimation}"};
+                return new RequestOutput {Command = state.players[player].arrivePos.DirTo(next), Debug = $"Goto nearest {state.players[player].arrivePos}->{bestTarget} with estimation {bestEstimation}"};
 
             return null;
         }

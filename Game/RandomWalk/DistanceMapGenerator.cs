@@ -163,7 +163,7 @@ namespace Game.RandomWalk
                             continue;
                     }
 
-                    var next = state.NextCoord(cur, (Direction)dir);
+                    var next = cur.NextCoord((Direction)dir);
                     if (next != ushort.MaxValue)
                     {
                         var nitroLeft = nitroLefts[player, cur];

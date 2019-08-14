@@ -21,7 +21,7 @@ namespace Game.RandomWalk.StartPathStrategies
                 next = cur;
 
             if (next != target && state.territory[next] == player)
-                return new RequestOutput {Command = state.MakeDir(state.players[player].arrivePos, next), Debug = $"Goto nearest {state.players[player].arrivePos}->{target}"};
+                return new RequestOutput {Command = state.players[player].arrivePos.DirTo(next), Debug = $"Goto nearest {state.players[player].arrivePos}->{target}"};
 
             return null;
         }

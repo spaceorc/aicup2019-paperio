@@ -165,7 +165,7 @@ namespace Game.Sim
                 var cur = queue[tail++];
                 for (var s = 0; s < 4; s++)
                 {
-                    var next = state.NextCoord(cur, (Direction)s);
+                    var next = cur.NextCoord((Direction)s);
                     if (next != ushort.MaxValue)
                     {
                         if (used[next] == queueGen)

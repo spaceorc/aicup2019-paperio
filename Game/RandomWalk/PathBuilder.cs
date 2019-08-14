@@ -17,9 +17,9 @@ namespace Game.RandomWalk
 
             len = path.len;
             originalLen = len;
-            dirs[len - 1] = state.MakeDir(state.players[player].arrivePos, path.coords[0]);
+            dirs[len - 1] = state.players[player].arrivePos.DirTo(path.coords[0]);
             for (var i = 1; i < len; i++)
-                dirs[len - i - 1] = state.MakeDir(path.coords[i - 1], path.coords[i]);
+                dirs[len - i - 1] = path.coords[i - 1].DirTo(path.coords[i]);
         }
 
         public void BuildPath(State state, DistanceMapGenerator distanceMap, int player, ushort target)
@@ -36,7 +36,7 @@ namespace Game.RandomWalk
             for (int cur = target; cur != start; )
             {
                 var next = distanceMap.paths[player, cur];
-                dirs[len++] = state.MakeDir((ushort)next, (ushort)cur);
+                dirs[len++] = ((ushort)next).DirTo((ushort)cur);
                 originalLen++;
                 cur = next;
             }

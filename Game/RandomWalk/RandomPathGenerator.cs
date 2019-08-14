@@ -66,7 +66,7 @@ namespace Game.RandomWalk
                         {
                             var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
                             var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
-                            var mDist = state.MDist(nearestOwned, line);
+                            var mDist = Coords.MDist(nearestOwned, line);
 
                             if (otherNitroLeft > mDist)
                                 otherNitroLeft = mDist;
@@ -153,7 +153,7 @@ namespace Game.RandomWalk
                 for (var i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
-                    var nextPos = state.NextCoord(pos, nextDir);
+                    var nextPos = pos.NextCoord(nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
 
@@ -234,7 +234,7 @@ namespace Game.RandomWalk
                                 {
                                     var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
                                     var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
-                                    var mDist = state.MDist(nearestOwned, nextPos);
+                                    var mDist = Coords.MDist(nearestOwned, nextPos);
 
                                     if (otherNitroLeft > mDist)
                                         otherNitroLeft = mDist;
@@ -320,11 +320,11 @@ namespace Game.RandomWalk
                 return "<EMPTY>";
 
             var result = new StringBuilder();
-            result.Append(state.ToV(coords[0]));
+            result.Append(coords[0].ToV());
             for (var i = 1; i < len; i++)
             {
                 result.Append("->");
-                result.Append(state.ToV(coords[i]));
+                result.Append(coords[i].ToV());
             }
 
             return result.ToString();

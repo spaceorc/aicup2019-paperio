@@ -38,7 +38,7 @@ namespace Game.Strategies
                     for (var d = 3; d <= 5; d++)
                     {
                         var nd = (Direction)(((int)curDir.Value + d) % 4);
-                        var next = state.NextCoord(state.players[0].arrivePos, nd);
+                        var next = state.players[0].arrivePos.NextCoord(nd);
                         if (next != ushort.MaxValue)
                         {
                             direction = nd;
