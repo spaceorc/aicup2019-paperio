@@ -1,7 +1,7 @@
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.RandomWalk.StartPathStrategies
+namespace Game.Strategies.RandomWalk.StartPathStrategies
 {
     public interface IStartPathStrategy
     {

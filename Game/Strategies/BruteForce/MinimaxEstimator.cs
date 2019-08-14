@@ -1,7 +1,7 @@
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.BruteForce
+namespace Game.Strategies.BruteForce
 {
     public class MinimaxEstimator : IMinimaxEstimator
     {

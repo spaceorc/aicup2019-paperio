@@ -3,7 +3,7 @@ using Game.Protocol;
 using Game.Sim;
 using Game.Sim.Undo;
 
-namespace Game.BruteForce
+namespace Game.Strategies.BruteForce
 {
     public class Minimax
     {

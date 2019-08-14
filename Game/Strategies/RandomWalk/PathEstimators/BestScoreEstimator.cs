@@ -1,6 +1,6 @@
 using Game.Sim;
 
-namespace Game.RandomWalk.PathEstimators
+namespace Game.Strategies.RandomWalk.PathEstimators
 {
     public class BestScoreEstimator : IPathEstimator
     {

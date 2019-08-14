@@ -2,7 +2,7 @@ using System;
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.RandomWalk.StartPathStrategies
+namespace Game.Strategies.RandomWalk.StartPathStrategies
 {
     public class SafestOpponentStartPathStrategy : IStartPathStrategy
     {

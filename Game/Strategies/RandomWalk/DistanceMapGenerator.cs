@@ -3,7 +3,7 @@ using System.IO;
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.RandomWalk
+namespace Game.Strategies.RandomWalk
 {
     public class DistanceMapGenerator
     {

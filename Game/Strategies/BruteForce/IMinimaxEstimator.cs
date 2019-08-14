@@ -1,6 +1,6 @@
 using Game.Sim;
 
-namespace Game.BruteForce
+namespace Game.Strategies.BruteForce
 {
     public interface IMinimaxEstimator
     {

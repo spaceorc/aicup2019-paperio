@@ -1,13 +1,12 @@
 using System;
 using Game.Helpers;
 using Game.Protocol;
-using Game.RandomWalk.PathEstimators;
-using Game.RandomWalk.StartPathStrategies;
 using Game.Sim;
 using Game.Sim.Undo;
-using Game.Strategies;
+using Game.Strategies.RandomWalk.PathEstimators;
+using Game.Strategies.RandomWalk.StartPathStrategies;
 
-namespace Game.RandomWalk
+namespace Game.Strategies.RandomWalk
 {
     public class RandomWalkAi : IAi
     {

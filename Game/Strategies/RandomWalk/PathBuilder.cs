@@ -2,7 +2,7 @@ using System.Text;
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.RandomWalk
+namespace Game.Strategies.RandomWalk
 {
     public class PathBuilder
     {

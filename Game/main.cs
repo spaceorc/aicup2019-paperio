@@ -2,10 +2,8 @@
 using System.Linq;
 using Game.Helpers;
 using Game.Protocol;
-using Game.RandomWalk;
-using Game.RandomWalk.PathEstimators;
-using Game.RandomWalk.StartPathStrategies;
 using Game.Strategies;
+using Game.Strategies.RandomWalk;
 
 namespace Game
 {

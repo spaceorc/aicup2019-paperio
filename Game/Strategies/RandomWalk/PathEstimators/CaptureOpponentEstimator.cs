@@ -1,7 +1,7 @@
 using Game.Protocol;
 using Game.Sim;
 
-namespace Game.RandomWalk.PathEstimators
+namespace Game.Strategies.RandomWalk.PathEstimators
 {
     public class CaptureOpponentEstimator : IPathEstimator
     {
