@@ -3,7 +3,6 @@ using System.Linq;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
-using Game.Types;
 
 namespace Game
 {
@@ -39,7 +38,7 @@ namespace Game
                     // else
                     //     ai = new MinimaxAi(1000);
 
-                    strategy = new Strategy(readResult.Config, ai);
+                    strategy = new Strategy(ai);
                     continue;
                 }
 

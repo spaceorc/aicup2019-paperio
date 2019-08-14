@@ -3,7 +3,6 @@ using System.Text;
 using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Strategies
 {
@@ -30,11 +29,11 @@ namespace Game.Strategies
         {
             if (coords == null)
             {
-                coords = new ushort[state.config.x_cells_count * state.config.y_cells_count];
+                coords = new ushort[Env.CELLS_COUNT];
                 times = new int[coords.Length];
                 dirs = new Direction[4];
                 dirChances = new int[4];
-                used = new int[state.config.x_cells_count * state.config.y_cells_count];
+                used = new int[Env.CELLS_COUNT];
             }
 
             gen++;
@@ -74,23 +73,23 @@ namespace Game.Strategies
                             {
                                 mDist -= otherSlowLeft;
                                 otherNitroLeft -= otherSlowLeft;
-                                timeToOur += otherSlowLeft * state.config.ticksPerRequest;
+                                timeToOur += otherSlowLeft * Env.TICKS_PER_REQUEST;
 
                                 mDist -= otherNitroLeft;
-                                timeToOur += otherNitroLeft * state.config.nitroTicksPerRequest;
+                                timeToOur += otherNitroLeft * Env.NITRO_TICKS_PER_REQUEST;
 
-                                timeToOur += mDist * state.config.ticksPerRequest;
+                                timeToOur += mDist * Env.TICKS_PER_REQUEST;
                             }
                             else
                             {
                                 mDist -= otherNitroLeft;
                                 otherSlowLeft -= otherNitroLeft;
-                                timeToOur += otherNitroLeft * state.config.ticksPerRequest;
+                                timeToOur += otherNitroLeft * Env.TICKS_PER_REQUEST;
 
                                 mDist -= otherSlowLeft;
-                                timeToOur += otherSlowLeft * state.config.slowTicksPerRequest;
+                                timeToOur += otherSlowLeft * Env.SLOW_TICKS_PER_REQUEST;
 
-                                timeToOur += mDist * state.config.ticksPerRequest;
+                                timeToOur += mDist * Env.TICKS_PER_REQUEST;
                             }
 
                             if (timeToOur < timeLimit)
@@ -186,7 +185,7 @@ namespace Game.Strategies
                         }
                     }
 
-                    var nextShiftTime = FastPlayer.GetShiftTime(state.config, nextNitroLeft, nextSlowLeft);
+                    var nextShiftTime = FastPlayer.GetShiftTime(nextNitroLeft, nextSlowLeft);
                     var escapeTime = nextTime + nextShiftTime;
 
                     var nextTimeLimit = timeLimit;
@@ -212,7 +211,7 @@ namespace Game.Strategies
                                 }
 
                                 var prevOtherPos = distanceMap.paths[other, nextPos];
-                                var prevShiftTime = FastPlayer.GetShiftTime(state.config, distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
+                                var prevShiftTime = FastPlayer.GetShiftTime(distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
                                 var otherEnterTime = otherTimeToPos - prevShiftTime;
 
                                 if (otherEnterTime < escapeTime)
@@ -237,33 +236,33 @@ namespace Game.Strategies
                                     if (otherSlowLeft > mDist)
                                         otherSlowLeft = mDist;
 
-                                    var prevShiftTime = otherNitroLeft == mDist && otherSlowLeft == mDist ? state.config.ticksPerRequest
-                                        : otherNitroLeft == mDist ? state.config.nitroTicksPerRequest
-                                        : otherSlowLeft == mDist ? state.config.slowTicksPerRequest
-                                        : state.config.ticksPerRequest;
+                                    var prevShiftTime = otherNitroLeft == mDist && otherSlowLeft == mDist ? Env.TICKS_PER_REQUEST
+                                        : otherNitroLeft == mDist ? Env.NITRO_TICKS_PER_REQUEST
+                                        : otherSlowLeft == mDist ? Env.SLOW_TICKS_PER_REQUEST
+                                        : Env.TICKS_PER_REQUEST;
 
                                     var timeToOur = timeToOwn;
                                     if (otherNitroLeft > otherSlowLeft)
                                     {
                                         mDist -= otherSlowLeft;
                                         otherNitroLeft -= otherSlowLeft;
-                                        timeToOur += otherSlowLeft * state.config.ticksPerRequest;
+                                        timeToOur += otherSlowLeft * Env.TICKS_PER_REQUEST;
 
                                         mDist -= otherNitroLeft;
-                                        timeToOur += otherNitroLeft * state.config.nitroTicksPerRequest;
+                                        timeToOur += otherNitroLeft * Env.NITRO_TICKS_PER_REQUEST;
 
-                                        timeToOur += mDist * state.config.ticksPerRequest;
+                                        timeToOur += mDist * Env.TICKS_PER_REQUEST;
                                     }
                                     else
                                     {
                                         mDist -= otherNitroLeft;
                                         otherSlowLeft -= otherNitroLeft;
-                                        timeToOur += otherNitroLeft * state.config.ticksPerRequest;
+                                        timeToOur += otherNitroLeft * Env.TICKS_PER_REQUEST;
 
                                         mDist -= otherSlowLeft;
-                                        timeToOur += otherSlowLeft * state.config.slowTicksPerRequest;
+                                        timeToOur += otherSlowLeft * Env.SLOW_TICKS_PER_REQUEST;
 
-                                        timeToOur += mDist * state.config.ticksPerRequest;
+                                        timeToOur += mDist * Env.TICKS_PER_REQUEST;
                                     }
 
                                     if (timeToOur < nextTimeLimit)

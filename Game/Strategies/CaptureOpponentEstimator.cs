@@ -31,11 +31,11 @@ namespace Game.Strategies
                 }
             }
 
-            var nitroTimeBonus = state.players[player].nitrosCollected * 30 * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest);
-            var nitroScoreBonus = nitroTimeBonus / state.config.ticksPerRequest;
+            var nitroTimeBonus = state.players[player].nitrosCollected * 30 * (Env.TICKS_PER_REQUEST - Env.NITRO_TICKS_PER_REQUEST);
+            var nitroScoreBonus = nitroTimeBonus / Env.TICKS_PER_REQUEST;
             
-            var slowTimePenalty = state.players[player].slowsCollected * 30 * (state.config.slowTicksPerRequest - state.config.ticksPerRequest);
-            var slowScorePenalty = slowTimePenalty / state.config.ticksPerRequest;
+            var slowTimePenalty = state.players[player].slowsCollected * 30 * (Env.SLOW_TICKS_PER_REQUEST - Env.TICKS_PER_REQUEST);
+            var slowScorePenalty = slowTimePenalty / Env.TICKS_PER_REQUEST;
             
             var opponentCaptured = state.players[player].opponentTerritoryCaptured - prevCaptured;
             if (pathStartLen > 0 && opponentCaptured == 0)

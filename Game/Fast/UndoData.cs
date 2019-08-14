@@ -14,12 +14,12 @@ namespace Game.Fast
         public byte[] territory;
         public UndoPlayerData[] undoPlayerDatas;
 
-        public UndoData(int playerCount, Config config)
+        public UndoData(int playerCount)
         {
             undoPlayerDatas = new UndoPlayerData[playerCount];
             for (int i = 0; i < undoPlayerDatas.Length; i++)
-                undoPlayerDatas[i] = new UndoPlayerData(config);
-            territory = new byte[config.x_cells_count * config.y_cells_count];
+                undoPlayerDatas[i] = new UndoPlayerData();
+            territory = new byte[Env.CELLS_COUNT];
         }
 
         public void Before(FastState state)

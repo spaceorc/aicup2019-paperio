@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Fast
 {
@@ -26,37 +25,37 @@ namespace Game.Fast
         public int lineCount;
         public ushort[] line;
 
-        public FastPlayer(Config config)
+        public FastPlayer()
         {
-            line = new ushort[config.x_cells_count * config.y_cells_count];
+            line = new ushort[Env.CELLS_COUNT];
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void TickAction(Config config)
+        public void TickAction()
         {
             if (slowLeft > 0)
                 slowLeft--;
             if (nitroLeft > 0)
                 nitroLeft--;
-            UpdateShiftTime(config);
+            UpdateShiftTime();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void UpdateShiftTime(Config config)
+        public void UpdateShiftTime()
         {
-            shiftTime = GetShiftTime(config, nitroLeft, slowLeft);
+            shiftTime = GetShiftTime(nitroLeft, slowLeft);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int GetShiftTime(Config config, int nitroLeft, int slowLeft)
+        public static int GetShiftTime(int nitroLeft, int slowLeft)
         {
             if (slowLeft > 0 && nitroLeft > 0)
-                return config.ticksPerRequest;
+                return Env.TICKS_PER_REQUEST;
             if (slowLeft > 0)
-                return config.slowTicksPerRequest;
+                return Env.SLOW_TICKS_PER_REQUEST;
             if (nitroLeft > 0)
-                return config.nitroTicksPerRequest;
-            return config.ticksPerRequest;
+                return Env.NITRO_TICKS_PER_REQUEST;
+            return Env.TICKS_PER_REQUEST;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

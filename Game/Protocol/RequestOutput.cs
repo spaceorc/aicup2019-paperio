@@ -1,6 +1,4 @@
-﻿using Game.Types;
-
-namespace Game.Protocol
+﻿namespace Game.Protocol
 {
 	public class RequestOutput
     {

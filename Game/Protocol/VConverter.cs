@@ -1,5 +1,4 @@
 using System;
-using Game.Types;
 using Newtonsoft.Json;
 
 namespace Game.Protocol

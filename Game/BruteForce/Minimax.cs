@@ -1,6 +1,6 @@
 using Game.Fast;
 using Game.Helpers;
-using Game.Types;
+using Game.Protocol;
 
 namespace Game.BruteForce
 {

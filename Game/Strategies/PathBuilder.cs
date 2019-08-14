@@ -1,6 +1,6 @@
 using System.Text;
 using Game.Fast;
-using Game.Types;
+using Game.Protocol;
 
 namespace Game.Strategies
 {
@@ -13,7 +13,7 @@ namespace Game.Strategies
         public void BuildPath(FastState state, RandomPathGenerator path, int player)
         {
             if (dirs == null)
-                dirs = new Direction[state.config.x_cells_count * state.config.y_cells_count];
+                dirs = new Direction[Env.CELLS_COUNT];
 
             len = path.len;
             originalLen = len;
@@ -25,7 +25,7 @@ namespace Game.Strategies
         public void BuildPath(FastState state, DistanceMapGenerator distanceMap, int player, ushort target)
         {
             if (dirs == null)
-                dirs = new Direction[state.config.x_cells_count * state.config.y_cells_count];
+                dirs = new Direction[Env.CELLS_COUNT];
 
             len = 0;
             originalLen = 0;

@@ -1,7 +1,6 @@
 using System;
 using Game.Fast;
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Strategies
 {
@@ -12,7 +11,7 @@ namespace Game.Strategies
             var bestTarget = ushort.MaxValue;
             int bestEstimation = int.MinValue; 
             int bestTime = int.MaxValue; 
-            for (ushort target = 0; target < state.config.x_cells_count * state.config.y_cells_count; target++)
+            for (ushort target = 0; target < Env.CELLS_COUNT; target++)
             {
                 if (state.territory[target] != 0xFF && state.territory[target] != player)
                 {
@@ -66,8 +65,8 @@ namespace Game.Strategies
                     minTime = distanceMap.times[other, target];
             }
 
-            if (minTime > 10 * state.config.ticksPerRequest)
-                minTime = 10 * state.config.ticksPerRequest;
+            if (minTime > 10 * Env.TICKS_PER_REQUEST)
+                minTime = 10 * Env.TICKS_PER_REQUEST;
 
             return minTime;
         }

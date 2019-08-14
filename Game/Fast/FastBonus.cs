@@ -1,5 +1,4 @@
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Fast
 {
@@ -8,10 +7,10 @@ namespace Game.Fast
         public BonusType type;
         public ushort pos;
 
-        public FastBonus(FastState state, RequestInput.BonusData inputBonusData, Config config)
+        public FastBonus(FastState state, RequestInput.BonusData inputBonusData)
         {
             type = inputBonusData.type;
-            pos = state.ToCoord(inputBonusData.position.ToCellCoords(config.width));
+            pos = state.ToCoord(inputBonusData.position.ToCellCoords(Env.WIDTH));
         }
     }
 }

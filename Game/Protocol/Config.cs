@@ -6,33 +6,5 @@
         public int y_cells_count;
         public int speed;
         public int width;
-        
-        public int ticksPerRequest;
-        public int nitroTicksPerRequest;
-        public int slowTicksPerRequest;
-        public int nitroSpeed;
-        public int slowSpeed;
-
-        public void Prepare()
-        {
-            nitroSpeed = speed;
-            while (nitroSpeed < width)
-            {
-                nitroSpeed++;
-                if (width % nitroSpeed == 0)
-                    break;
-            }
-            slowSpeed = speed;
-            while (slowSpeed > 1)
-            {
-                slowSpeed--;
-                if (width % slowSpeed == 0)
-                    break;
-            }
-
-            ticksPerRequest = width / speed;
-            nitroTicksPerRequest = width / nitroSpeed;
-            slowTicksPerRequest = width / slowSpeed;
-        }
     }
 }

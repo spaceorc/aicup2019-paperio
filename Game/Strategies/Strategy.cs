@@ -2,25 +2,22 @@
 using Game.Fast;
 using Game.Helpers;
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Strategies
 {
     public class Strategy : IStrategy
     {
-        private readonly Config config;
         private readonly IAi ai;
         private readonly FastState state = new FastState();
         
-        public Strategy(Config config, IAi ai)
+        public Strategy(IAi ai)
         {
-            this.config = config;
             this.ai = ai;
         }
 
         public RequestOutput OnTick(RequestInput requestInput, TimeManager timeManager)
         {
-            state.SetInput(config, requestInput);
+            state.SetInput(requestInput);
             var seed = Guid.NewGuid().GetHashCode();
             Logger.Debug($"seed: {seed}");
             try

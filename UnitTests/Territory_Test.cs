@@ -4,7 +4,6 @@ using System.Linq;
 using BrutalTester.Sim;
 using FluentAssertions;
 using Game.Protocol;
-using Game.Types;
 using NUnit.Framework;
 
 namespace UnitTests

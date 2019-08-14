@@ -1,9 +1,8 @@
 using System;
 using System.Linq;
-using Game.Protocol;
 using Newtonsoft.Json;
 
-namespace Game.Types
+namespace Game.Protocol
 {
     [JsonArray, JsonConverter(typeof(VConverter))]
     public class V : IEquatable<V>

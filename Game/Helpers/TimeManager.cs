@@ -25,9 +25,9 @@ namespace Game.Helpers
             maxMillisPerRequest = Env.REQUEST_MAX_TIME * 950;
             totalTicks = Env.MAX_TICK_COUNT;
 
-            beStupidMillisPerRequest = totalTime / (totalTicks / config.ticksPerRequest) / 2;
-            beNormalMillisPerRequest = totalTime / (totalTicks / config.ticksPerRequest);
-            beSmartMillisPerRequest = totalTime / (totalTicks / config.ticksPerRequest) * 2;
+            beStupidMillisPerRequest = totalTime / (totalTicks / Env.TICKS_PER_REQUEST) / 2;
+            beNormalMillisPerRequest = totalTime / (totalTicks / Env.TICKS_PER_REQUEST);
+            beSmartMillisPerRequest = totalTime / (totalTicks / Env.TICKS_PER_REQUEST) * 2;
         }
 
         public void RequestStarted(int tickNum, int nitroTicksLeft, int slowTicksLeft)
@@ -42,15 +42,15 @@ namespace Game.Helpers
             var requestsLeft = 0;
             if (nitroTicksLeft > slowTicksLeft)
             {
-                requestsLeft += slowTicksLeft / config.ticksPerRequest;
-                requestsLeft += (nitroTicksLeft - slowTicksLeft) / config.nitroTicksPerRequest;
-                requestsLeft += (ticksLeft - nitroTicksLeft) / config.ticksPerRequest;
+                requestsLeft += slowTicksLeft / Env.TICKS_PER_REQUEST;
+                requestsLeft += (nitroTicksLeft - slowTicksLeft) / Env.NITRO_TICKS_PER_REQUEST;
+                requestsLeft += (ticksLeft - nitroTicksLeft) / Env.TICKS_PER_REQUEST;
             }
             else
             {
-                requestsLeft += nitroTicksLeft / config.ticksPerRequest;
-                requestsLeft += (slowTicksLeft - nitroTicksLeft) / config.slowTicksPerRequest;
-                requestsLeft += (ticksLeft - slowTicksLeft) / config.ticksPerRequest;
+                requestsLeft += nitroTicksLeft / Env.TICKS_PER_REQUEST;
+                requestsLeft += (slowTicksLeft - nitroTicksLeft) / Env.SLOW_TICKS_PER_REQUEST;
+                requestsLeft += (ticksLeft - slowTicksLeft) / Env.TICKS_PER_REQUEST;
             }
 
             millisPerRequest = requestsLeft == 0 ? 0 : (totalTime - timeElapsed) / requestsLeft;

@@ -1,5 +1,4 @@
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Fast
 {
@@ -24,9 +23,9 @@ namespace Game.Fast
         public int lineCount;
         public ushort[] line;
 
-        public UndoPlayerData(Config config)
+        public UndoPlayerData()
         {
-            line = new ushort[config.x_cells_count * config.y_cells_count];
+            line = new ushort[Env.CELLS_COUNT];
         }
 
         public void Before(FastState state, FastPlayer player)

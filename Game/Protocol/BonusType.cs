@@ -1,4 +1,4 @@
-namespace Game.Types
+namespace Game.Protocol
 {
     public enum BonusType
     {

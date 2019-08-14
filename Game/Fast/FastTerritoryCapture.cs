@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Fast
 {
@@ -16,24 +15,24 @@ namespace Game.Fast
         private ushort[] queue;
         private int[] used;
 
-        public void Init(Config config, int playerCount)
+        public void Init(int playerCount)
         {
             gen = 0;
             queueGen = 0;
             if (territoryCaptureMask == null
-                || territoryCaptureMask.Length != config.x_cells_count * config.y_cells_count)
+                || territoryCaptureMask.Length != Env.CELLS_COUNT)
             {
-                territoryCaptureMask = new int[config.x_cells_count * config.y_cells_count];
-                queue = new ushort[config.x_cells_count * config.y_cells_count];
-                used = new int[config.x_cells_count * config.y_cells_count];
+                territoryCaptureMask = new int[Env.CELLS_COUNT];
+                queue = new ushort[Env.CELLS_COUNT];
+                used = new int[Env.CELLS_COUNT];
             }
             else
             {
-                for (int x = 0; x < config.x_cells_count; x++)
-                for (int y = 0; y < config.y_cells_count; y++)
+                for (int x = 0; x < Env.X_CELLS_COUNT; x++)
+                for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
                 {
-                    territoryCaptureMask[x + y * config.x_cells_count] = 0;
-                    used[x + y * config.x_cells_count] = 0;
+                    territoryCaptureMask[x + y * Env.X_CELLS_COUNT] = 0;
+                    used[x + y * Env.X_CELLS_COUNT] = 0;
                 }
             }
 
@@ -49,9 +48,9 @@ namespace Game.Fast
 
             if (territoryCapture == null
                 || territoryCapture.GetLength(0) != playerCount
-                || territoryCapture.GetLength(1) != config.x_cells_count * config.y_cells_count)
+                || territoryCapture.GetLength(1) != Env.CELLS_COUNT)
             {
-                territoryCapture = new ushort[playerCount, config.x_cells_count * config.y_cells_count];
+                territoryCapture = new ushort[playerCount, Env.CELLS_COUNT];
             }
         }
 
@@ -147,8 +146,7 @@ namespace Game.Fast
             var tail = 0;
             var head = 0;
 
-            var config = state.config;
-            for (ushort x = 0; x < config.x_cells_count; x++)
+            for (ushort x = 0; x < Env.X_CELLS_COUNT; x++)
             {
                 if (state.territory[x] != player && (state.lines[x] & (1 << player)) == 0)
                 {
@@ -156,25 +154,25 @@ namespace Game.Fast
                     used[x] = queueGen;
                 }
 
-                if (state.territory[x + (config.y_cells_count - 1) * config.x_cells_count] != player && (state.lines[x + (config.y_cells_count - 1) * config.x_cells_count] & (1 << player)) == 0)
+                if (state.territory[x + (Env.Y_CELLS_COUNT - 1) * Env.X_CELLS_COUNT] != player && (state.lines[x + (Env.Y_CELLS_COUNT - 1) * Env.X_CELLS_COUNT] & (1 << player)) == 0)
                 {
-                    queue[head++] = (ushort)(x + (config.y_cells_count - 1) * config.x_cells_count);
-                    used[x + (config.y_cells_count - 1) * config.x_cells_count] = queueGen;
+                    queue[head++] = (ushort)(x + (Env.Y_CELLS_COUNT - 1) * Env.X_CELLS_COUNT);
+                    used[x + (Env.Y_CELLS_COUNT - 1) * Env.X_CELLS_COUNT] = queueGen;
                 }
             }
 
-            for (int y = 0; y < config.y_cells_count; y++)
+            for (int y = 1; y < Env.Y_CELLS_COUNT - 1; y++)
             {
-                if (state.territory[y * config.x_cells_count] != player && (state.lines[y * config.x_cells_count] & (1 << player)) == 0)
+                if (state.territory[y * Env.X_CELLS_COUNT] != player && (state.lines[y * Env.X_CELLS_COUNT] & (1 << player)) == 0)
                 {
-                    queue[head++] = (ushort)(y * config.x_cells_count);
-                    used[y * config.x_cells_count] = queueGen;
+                    queue[head++] = (ushort)(y * Env.X_CELLS_COUNT);
+                    used[y * Env.X_CELLS_COUNT] = queueGen;
                 }
 
-                if (state.territory[config.x_cells_count - 1 + y * config.x_cells_count] != player && (state.lines[config.x_cells_count - 1 + y * config.x_cells_count] & (1 << player)) == 0)
+                if (state.territory[Env.X_CELLS_COUNT - 1 + y * Env.X_CELLS_COUNT] != player && (state.lines[Env.X_CELLS_COUNT - 1 + y * Env.X_CELLS_COUNT] & (1 << player)) == 0)
                 {
-                    queue[head++] = (ushort)(config.x_cells_count - 1 + y * config.x_cells_count);
-                    used[config.x_cells_count - 1 + y * config.x_cells_count] = queueGen;
+                    queue[head++] = (ushort)(Env.X_CELLS_COUNT - 1 + y * Env.X_CELLS_COUNT);
+                    used[Env.X_CELLS_COUNT - 1 + y * Env.X_CELLS_COUNT] = queueGen;
                 }
             }
 
@@ -197,7 +195,7 @@ namespace Game.Fast
                 }
             }
 
-            for (ushort c = 0; c < config.x_cells_count * config.y_cells_count; c++)
+            for (ushort c = 0; c < Env.CELLS_COUNT; c++)
             {
                 if (used[c] != queueGen && state.territory[c] != player)
                     Add(c, player);

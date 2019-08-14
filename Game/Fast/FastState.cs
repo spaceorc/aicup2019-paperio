@@ -3,14 +3,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Game.Protocol;
-using Game.Types;
 
 namespace Game.Fast
 {
     public class FastState
     {
-        public Config config;
-
         public bool isGameOver;
 
         public int time;
@@ -40,24 +37,24 @@ namespace Game.Fast
             switch (dir)
             {
                 case Direction.Up:
-                    var result = prev + config.x_cells_count;
-                    if (result >= config.x_cells_count * config.y_cells_count)
+                    var result = prev + Env.X_CELLS_COUNT;
+                    if (result >= Env.CELLS_COUNT)
                         return ushort.MaxValue;
                     return (ushort)result;
 
                 case Direction.Left:
-                    if (prev % config.x_cells_count == 0)
+                    if (prev % Env.X_CELLS_COUNT == 0)
                         return ushort.MaxValue;
                     return (ushort)(prev - 1);
 
                 case Direction.Down:
-                    result = prev - config.x_cells_count;
+                    result = prev - Env.X_CELLS_COUNT;
                     if (result < 0)
                         return ushort.MaxValue;
                     return (ushort)result;
 
                 case Direction.Right:
-                    if (prev % config.x_cells_count == config.x_cells_count - 1)
+                    if (prev % Env.X_CELLS_COUNT == Env.X_CELLS_COUNT - 1)
                         return ushort.MaxValue;
                     return (ushort)(prev + 1);
 
@@ -68,12 +65,12 @@ namespace Game.Fast
 
         public ushort ToCoord(V v)
         {
-            return (ushort)(v.X + v.Y * config.x_cells_count);
+            return (ushort)(v.X + v.Y * Env.X_CELLS_COUNT);
         }
 
         public V ToV(ushort c)
         {
-            return V.Get(c % config.x_cells_count, c / config.x_cells_count);
+            return V.Get(c % Env.X_CELLS_COUNT, c / Env.X_CELLS_COUNT);
         }
 
         public string Print(bool territoryOnly = false)
@@ -89,11 +86,11 @@ namespace Game.Fast
                 writer.WriteLine($"slowsCollected: {string.Join(",", players.Select(x => x.slowsCollected))}");
                 writer.WriteLine($"opponentTerritoryCaptured: {string.Join(",", players.Select(x => x.opponentTerritoryCaptured))}");
                 writer.WriteLine($"lineCount: {string.Join(",", players.Select(x => x.lineCount))}");
-                for (int y = config.y_cells_count - 1; y >= 0; y--)
+                for (int y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
                 {
-                    for (int x = 0; x < config.x_cells_count; x++)
+                    for (int x = 0; x < Env.X_CELLS_COUNT; x++)
                     {
-                        var c = (ushort)(y * config.x_cells_count + x);
+                        var c = (ushort)(y * Env.X_CELLS_COUNT + x);
 
                         int player = -1;
                         for (int p = 0; p < players.Length; p++)
@@ -160,28 +157,26 @@ namespace Game.Fast
             }
         }
 
-        public void SetInput(Config config, RequestInput input, string my = "i")
+        public void SetInput(RequestInput input, string my = "i")
         {
             if (players == null)
             {
-                this.config = config;
-
                 players = new FastPlayer[input.players.Count];
 
-                territory = new byte[config.x_cells_count * config.y_cells_count];
-                lines = new byte[config.y_cells_count * config.x_cells_count];
+                territory = new byte[Env.CELLS_COUNT];
+                lines = new byte[Env.Y_CELLS_COUNT * Env.X_CELLS_COUNT];
 
-                undos = new UndoDataPool(players.Length, config);
+                undos = new UndoDataPool(players.Length);
             }
 
             isGameOver = false;
 
-            capture.Init(config, players.Length);
+            capture.Init(players.Length);
 
             time = input.tick_num;
             playersLeft = input.players.Count;
 
-            for (int c = 0; c < config.x_cells_count * config.y_cells_count; c++)
+            for (int c = 0; c < Env.CELLS_COUNT; c++)
             {
                 territory[c] = 0xFF;
                 lines[c] = 0;
@@ -195,7 +190,7 @@ namespace Game.Fast
 
                 if (players[i] == null)
                 {
-                    players[i] = new FastPlayer(config);
+                    players[i] = new FastPlayer();
                 }
 
                 if (!input.players.TryGetValue(key, out var playerData))
@@ -208,20 +203,20 @@ namespace Game.Fast
                     if (playerData.bonuses.Any(b => b.type == BonusType.S))
                         accel--;
 
-                    var speed = accel == 0 ? config.speed
-                        : accel == -1 ? config.slowSpeed
-                        : accel == 1 ? config.nitroSpeed
+                    var speed = accel == 0 ? Env.SPEED
+                        : accel == -1 ? Env.SLOW_SPEED
+                        : accel == 1 ? Env.NITRO_SPEED
                         : throw new InvalidOperationException();
 
                     var v = playerData.position;
                     var arriveTime = 0;
-                    while (!v.InCellCenter(config.width))
+                    while (!v.InCellCenter(Env.WIDTH))
                     {
                         v += GetShift(playerData.direction ?? throw new InvalidOperationException(), speed);
                         arriveTime++;
                     }
 
-                    players[i].arrivePos = ToCoord(v.ToCellCoords(config.width));
+                    players[i].arrivePos = ToCoord(v.ToCellCoords(Env.WIDTH));
                     if (arriveTime == 0)
                         players[i].pos = players[i].arrivePos;
                     else
@@ -233,9 +228,9 @@ namespace Game.Fast
 
                     players[i].dir = playerData.direction;
                     players[i].score = playerData.score;
-                    players[i].shiftTime = accel == 0 ? config.ticksPerRequest
-                        : accel == -1 ? config.slowTicksPerRequest
-                        : accel == 1 ? config.nitroTicksPerRequest
+                    players[i].shiftTime = accel == 0 ? Env.TICKS_PER_REQUEST
+                        : accel == -1 ? Env.SLOW_TICKS_PER_REQUEST
+                        : accel == 1 ? Env.NITRO_TICKS_PER_REQUEST
                         : throw new InvalidOperationException();
 
                     players[i].arriveTime = arriveTime;
@@ -250,14 +245,14 @@ namespace Game.Fast
 
                     for (var k = 0; k < playerData.lines.Length; k++)
                     {
-                        var lv = ToCoord(playerData.lines[k].ToCellCoords(config.width));
+                        var lv = ToCoord(playerData.lines[k].ToCellCoords(Env.WIDTH));
                         players[i].line[k] = lv;
                         lines[lv] = (byte)(lines[lv] | (1 << i));
                     }
 
                     for (var k = 0; k < playerData.territory.Length; k++)
                     {
-                        var lv = ToCoord(playerData.territory[k].ToCellCoords(config.width));
+                        var lv = ToCoord(playerData.territory[k].ToCellCoords(Env.WIDTH));
                         territory[lv] = (byte)i;
                     }
                 }
@@ -269,7 +264,7 @@ namespace Game.Fast
             bonusCount = 0;
             for (var i = 0; i < input.bonuses.Length; i++)
             {
-                bonuses[bonusCount++] = new FastBonus(this, input.bonuses[i], config);
+                bonuses[bonusCount++] = new FastBonus(this, input.bonuses[i]);
             }
 
             V GetShift(Direction direction, int d) =>
@@ -366,7 +361,7 @@ namespace Game.Fast
 
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
-                    players[i].TickAction(config);
+                    players[i].TickAction();
 
                     for (int b = 0; b < bonusCount;)
                     {
@@ -381,7 +376,7 @@ namespace Game.Fast
                                     players[i].nitroLeft += bonusTime;
                                 else
                                     players[i].nitroLeft = bonusTime;
-                                players[i].UpdateShiftTime(config);
+                                players[i].UpdateShiftTime();
                                 players[i].nitrosCollected++;
                             }
                             else if (bonuses[b].type == BonusType.S)
@@ -391,7 +386,7 @@ namespace Game.Fast
                                     players[i].slowLeft += bonusTime; // random 10..50
                                 else
                                     players[i].slowLeft = bonusTime;
-                                players[i].UpdateShiftTime(config);
+                                players[i].UpdateShiftTime();
                                 players[i].slowsCollected++;
                             }
                             else if (bonuses[b].type == BonusType.Saw)
@@ -433,17 +428,17 @@ namespace Game.Fast
                                         continue;
 
                                     players[i].tickScore += Env.SAW_SCORE;
-                                    var vx = v % config.x_cells_count;
-                                    var vy = v / config.x_cells_count;
+                                    var vx = v % Env.X_CELLS_COUNT;
+                                    var vy = v / Env.X_CELLS_COUNT;
                                     if (players[i].dir.Value == Direction.Up || players[i].dir.Value == Direction.Down)
                                     {
-                                        if (players[k].arrivePos % config.x_cells_count < vx)
+                                        if (players[k].arrivePos % Env.X_CELLS_COUNT < vx)
                                         {
                                             int pos = 0;
-                                            for (int y = 0; y < config.y_cells_count; y++)
+                                            for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
                                             {
                                                 pos += vx;
-                                                for (int x = vx; x < config.x_cells_count; x++, pos++)
+                                                for (int x = vx; x < Env.X_CELLS_COUNT; x++, pos++)
                                                 {
                                                     if (territory[pos] == k)
                                                     {
@@ -458,7 +453,7 @@ namespace Game.Fast
                                         else
                                         {
                                             int pos = 0;
-                                            for (int y = 0; y < config.y_cells_count; y++)
+                                            for (int y = 0; y < Env.Y_CELLS_COUNT; y++)
                                             {
                                                 for (int x = 0; x <= vx; x++, pos++)
                                                 {
@@ -471,17 +466,17 @@ namespace Game.Fast
                                                     }
                                                 }
 
-                                                pos += config.x_cells_count - vx - 1;
+                                                pos += Env.X_CELLS_COUNT - vx - 1;
                                             }
                                         }
                                     }
                                     else
                                     {
-                                        if (players[k].arrivePos / config.x_cells_count < vy)
+                                        if (players[k].arrivePos / Env.X_CELLS_COUNT < vy)
                                         {
-                                            int pos = vy * config.x_cells_count;
-                                            for (int y = vy; y < config.y_cells_count; y++)
-                                            for (int x = 0; x < config.x_cells_count; x++, pos++)
+                                            int pos = vy * Env.X_CELLS_COUNT;
+                                            for (int y = vy; y < Env.Y_CELLS_COUNT; y++)
+                                            for (int x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
                                             {
                                                 if (territory[pos] == k)
                                                 {
@@ -496,7 +491,7 @@ namespace Game.Fast
                                         {
                                             int pos = 0;
                                             for (int y = 0; y <= vy; y++)
-                                            for (int x = 0; x < config.x_cells_count; x++, pos++)
+                                            for (int x = 0; x < Env.X_CELLS_COUNT; x++, pos++)
                                             {
                                                 if (territory[pos] == k)
                                                 {
@@ -825,19 +820,19 @@ namespace Game.Fast
                 return Direction.Right;
             if (diff == -1)
                 return Direction.Left;
-            if (diff == config.x_cells_count)
+            if (diff == Env.X_CELLS_COUNT)
                 return Direction.Up;
-            if (diff == -config.x_cells_count)
+            if (diff == -Env.X_CELLS_COUNT)
                 return Direction.Down;
             throw new InvalidOperationException($"Bad cell diff: {diff}");
         }
 
         public int MDist(ushort a, ushort b)
         {
-            var ax = a % config.x_cells_count;
-            var ay = a / config.x_cells_count;
-            var bx = b % config.x_cells_count;
-            var by = b / config.x_cells_count;
+            var ax = a % Env.X_CELLS_COUNT;
+            var ay = a / Env.X_CELLS_COUNT;
+            var bx = b % Env.X_CELLS_COUNT;
+            var by = b / Env.X_CELLS_COUNT;
             return Math.Abs(ax - bx) + Math.Abs(ay - by);
         }
     }

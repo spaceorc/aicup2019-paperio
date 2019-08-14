@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using Game.Fast;
-using Game.Types;
+using Game.Protocol;
 
 namespace Game.Strategies
 {
@@ -20,11 +20,11 @@ namespace Game.Strategies
         {
             if (times == null)
             {
-                times = new int[state.players.Length, state.config.x_cells_count * state.config.y_cells_count];
-                nitroLefts = new int[state.players.Length, state.config.x_cells_count * state.config.y_cells_count];
-                slowLefts = new int[state.players.Length, state.config.x_cells_count * state.config.y_cells_count];
-                paths = new int[state.players.Length, state.config.x_cells_count * state.config.y_cells_count];
-                queue = new ushort[state.config.x_cells_count * state.config.y_cells_count];
+                times = new int[state.players.Length, Env.CELLS_COUNT];
+                nitroLefts = new int[state.players.Length, Env.CELLS_COUNT];
+                slowLefts = new int[state.players.Length, Env.CELLS_COUNT];
+                paths = new int[state.players.Length, Env.CELLS_COUNT];
+                queue = new ushort[Env.CELLS_COUNT];
                 nearestEmpty = new ushort[state.players.Length];
                 nearestOwned = new ushort[state.players.Length];
                 nearestOpponent = new ushort[state.players.Length];
@@ -40,7 +40,6 @@ namespace Game.Strategies
 
         public string Print(FastState state, int forPlayer)
         {
-            var config = state.config;
             var players = state.players;
             var bonuses = state.bonuses;
             var bonusCount = state.bonusCount;
@@ -49,11 +48,11 @@ namespace Game.Strategies
             const string tc = "ABCDEF";
             using (var writer = new StringWriter())
             {
-                for (int y = config.y_cells_count - 1; y >= 0; y--)
+                for (int y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
                 {
-                    for (int x = 0; x < config.x_cells_count; x++)
+                    for (int x = 0; x < Env.X_CELLS_COUNT; x++)
                     {
-                        var c = (ushort)(y * config.x_cells_count + x);
+                        var c = (ushort)(y * Env.X_CELLS_COUNT + x);
 
                         var dist = times[forPlayer, c];
 
@@ -169,7 +168,7 @@ namespace Game.Strategies
                     {
                         var nitroLeft = nitroLefts[player, cur];
                         var slowLeft = slowLefts[player, cur];
-                        var nextDist = times[player, cur] + FastPlayer.GetShiftTime(state.config, nitroLeft, slowLeft);
+                        var nextDist = times[player, cur] + FastPlayer.GetShiftTime(nitroLeft, slowLeft);
                         if (nextDist < times[player, next])
                         {
                             times[player, next] = nextDist;

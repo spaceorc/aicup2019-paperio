@@ -1,4 +1,4 @@
-using Game.Types;
+using Game.Protocol;
 
 namespace Game.Fast
 {

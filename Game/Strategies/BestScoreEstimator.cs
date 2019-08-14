@@ -30,8 +30,8 @@ namespace Game.Strategies
             //     score -= state.players[player].slowsCollected * 50;
             // }
 
-            // score += state.players[player].nitrosCollected * 30 * (state.config.ticksPerRequest - state.config.nitroTicksPerRequest) / state.config.ticksPerRequest; 
-            // score -= state.players[player].slowsCollected * 30 * (state.config.slowTicksPerRequest - state.config.ticksPerRequest) / state.config.ticksPerRequest; 
+            // score += state.players[player].nitrosCollected * 30 * (Env.TICKS_PER_REQUEST - Env.NITRO_TICKS_PER_REQUEST) / Env.TICKS_PER_REQUEST; 
+            // score -= state.players[player].slowsCollected * 30 * (Env.SLOW_TICKS_PER_REQUEST - Env.TICKS_PER_REQUEST) / Env.TICKS_PER_REQUEST; 
 
             return score;
         }
