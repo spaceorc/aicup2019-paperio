@@ -19,6 +19,11 @@ namespace Game.RandomWalk
         private PathBuilder[] paths;
         private Direction[] commands;
 
+        public RandomWalkAi()
+            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), walkOnTerritory: true)
+        {
+        }
+
         public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool walkOnTerritory)
         {
             this.startPathStrategy = startPathStrategy;
@@ -138,12 +143,12 @@ namespace Game.RandomWalk
                 else
                     invalidPathCounter++;
             }
-            
+
             if (bestDir == null)
             {
                 if (randomPath.walkOnTerritory && TryGotoStart(state, player, out gotoStart))
                     return gotoStart;
-                
+
                 paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
                 if (paths[player].len > 0)
                     return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};

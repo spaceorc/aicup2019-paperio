@@ -35,13 +35,7 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    IAi ai;
-                    // if (args.ElementAtOrDefault(0) == "prev")
-                        ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), walkOnTerritory: true);
-                    // else
-                    //     ai = new MinimaxAi(1000);
-
-                    strategy = new Strategy(ai);
+                    strategy = new Strategy(new RandomWalkAi());
                     continue;
                 }
 
