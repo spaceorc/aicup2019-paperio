@@ -2,7 +2,7 @@ using System;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Sim;
-using Game.Sim.Backup;
+using Game.Sim.Undo;
 
 namespace Game.Strategies
 {
