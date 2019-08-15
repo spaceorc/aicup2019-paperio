@@ -60,6 +60,7 @@ namespace Game.Strategies.RandomWalk
             var bestLen = 0;
             string bestPath = null;
             long simulations = 0;
+            long bestPathCounter = 0;
             var opponentCapturedFound = false;
             
             for (var i = 0; i < state.players.Length; i++)
@@ -135,6 +136,7 @@ namespace Game.Strategies.RandomWalk
                                         bestDir = dir;
                                         bestLen = generator.len;
                                         bestPath = paths[player].Print();
+                                        bestPathCounter = pathCounter;
                                         Logger.Debug($"Score: {bestScore}; Path: {bestPath}");
                                         if (Logger.IsEnabled(Logger.Level.Debug))
                                         {
@@ -199,7 +201,7 @@ namespace Game.Strategies.RandomWalk
                 return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
             }
 
-            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}"};
+            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}. BestPathCounter: {bestPathCounter}"};
         }
 
         private bool TryGotoStart(State state, int player, out RequestOutput result)
