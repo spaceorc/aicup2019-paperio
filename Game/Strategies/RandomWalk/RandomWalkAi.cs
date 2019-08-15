@@ -13,6 +13,7 @@ namespace Game.Strategies.RandomWalk
         private readonly IStartPathStrategy startPathStrategy;
         private readonly IPathEstimator estimator;
         private readonly RandomPathGenerator randomPath;
+        private readonly ReliablePathGenerator generator = new ReliablePathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly StateBackup backup = new StateBackup();
         private PathBuilder[] paths;
@@ -63,7 +64,7 @@ namespace Game.Strategies.RandomWalk
             while (!timeManager.IsExpired)
             {
                 ++pathCounter;
-                if (randomPath.Generate(state, player, distanceMap))
+                if (randomPath.Generate(state, player, distanceMap, generator))
                 {
                     ++validPathCounter;
                     var dir = default(Direction);
@@ -71,7 +72,7 @@ namespace Game.Strategies.RandomWalk
                     {
                         if (i == player)
                         {
-                            paths[i].BuildPath(state, randomPath, i);
+                            paths[i].BuildPath(state, generator, i);
                             dir = paths[i].dirs[paths[i].len - 1];
                         }
                         else
@@ -116,12 +117,12 @@ namespace Game.Strategies.RandomWalk
                         simulations++;
                         if (state.isGameOver || state.players[player].status == PlayerStatus.Eliminated || paths[player].len == 0 && state.players[player].arriveTime == 0)
                         {
-                            var score = estimator.Estimate(state, player, randomPath.startLen);
-                            if (score > bestScore || score > bestScore - 1e-6 && randomPath.len < bestLen)
+                            var score = estimator.Estimate(state, player, generator.startLen);
+                            if (score > bestScore || score > bestScore - 1e-6 && generator.len < bestLen)
                             {
                                 bestScore = score;
                                 bestDir = dir;
-                                bestLen = randomPath.len;
+                                bestLen = generator.len;
                                 bestPath = paths[player].Print();
                                 Logger.Debug($"Score: {bestScore}; Path: {bestPath}");
                                 if (Logger.IsEnabled(Logger.Level.Debug))

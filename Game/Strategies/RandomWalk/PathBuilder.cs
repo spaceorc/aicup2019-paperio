@@ -10,7 +10,7 @@ namespace Game.Strategies.RandomWalk
         public int len;
         public int originalLen;
 
-        public void BuildPath(State state, RandomPathGenerator path, int player)
+        public void BuildPath(State state, ReliablePathGenerator path, int player)
         {
             if (dirs == null)
                 dirs = new Direction[Env.CELLS_COUNT];
