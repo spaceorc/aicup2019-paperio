@@ -104,7 +104,7 @@ namespace BrutalTester.Sim
         {
             foreach (var player in Players)
             {
-                if (player.Pos.InCellCenter(Env.WIDTH))
+                if (player.Pos.InCellCenter())
                 {
                     var direction = SendTick(player);
                     if (direction != null)
@@ -119,7 +119,7 @@ namespace BrutalTester.Sim
             foreach (var player in Players)
             {
                 player.RemoveSawBonus();
-                if (player.Pos.InCellCenter(Env.WIDTH))
+                if (player.Pos.InCellCenter())
                 {
                     player.UpdateLines();
                     var captured = player.Territory.Capture(player.Lines);
@@ -148,7 +148,7 @@ namespace BrutalTester.Sim
 
             foreach (var player in Players)
             {
-                if (player.Pos.InCellCenter(Env.WIDTH))
+                if (player.Pos.InCellCenter())
                 {
                     if (!playerToCaptured.TryGetValue(player, out var captured))
                         captured = new HashSet<V>();
@@ -169,7 +169,7 @@ namespace BrutalTester.Sim
                                 {
                                     if (p != player)
                                     {
-                                        if (line.Any(point => p.Pos.IntersectsWith(point, Env.WIDTH)))
+                                        if (line.Any(point => p.Pos.IntersectsWith(point)))
                                         {
                                             Losers.Add(p);
                                             player.TickScore += Env.SAW_KILL_SCORE;
@@ -327,7 +327,7 @@ namespace BrutalTester.Sim
 
             foreach (var p in Players)
             {
-                if (p != player && p.Pos.IntersectsWith(player.Pos, Env.WIDTH))
+                if (p != player && p.Pos.IntersectsWith(player.Pos))
                 {
                     if (player.Lines.Count >= p.Lines.Count)
                     {

@@ -102,28 +102,28 @@ namespace Game.Protocol
         public int MLen() => Math.Abs(X) + Math.Abs(Y);
         public int CLen() => Math.Max(Math.Abs(X), Math.Abs(Y));
 
-        public bool IntersectsWith(V other, int width)
+        public bool IntersectsWith(V other)
         {
-            return Math.Abs(X - other.X) < width && Math.Abs(Y - other.Y) < width;
+            return Math.Abs(X - other.X) < Env.WIDTH && Math.Abs(Y - other.Y) < Env.WIDTH;
         }
 
-        public bool InCellCenter(int width)
+        public bool InCellCenter()
         {
-            return (X - width / 2) % width == 0 && (Y - width / 2) % width == 0;
+            return (X - Env.WIDTH / 2) % Env.WIDTH == 0 && (Y - Env.WIDTH / 2) % Env.WIDTH == 0;
         }
 
-        public V ToCellCoords(int width)
+        public V ToCellCoords()
         {
             return V.Get(
-                (X - width / 2) / width,
-                (Y - width / 2) / width);
+                (X - Env.WIDTH / 2) / Env.WIDTH,
+                (Y - Env.WIDTH / 2) / Env.WIDTH);
         }
 
-        public V ToRealCoords(int width)
+        public V ToRealCoords()
         {
             return V.Get(
-                X * width + width / 2,
-                Y * width + width / 2);
+                X * Env.WIDTH + Env.WIDTH / 2,
+                Y * Env.WIDTH + Env.WIDTH / 2);
         }
 
         public V[] GetDiagonals(int width)

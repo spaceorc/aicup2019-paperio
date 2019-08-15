@@ -10,7 +10,7 @@ namespace Game.Sim
         public Bonus(State state, RequestInput.BonusData inputBonusData)
         {
             type = inputBonusData.type;
-            pos = inputBonusData.position.ToCellCoords(Env.WIDTH).ToCoord();
+            pos = inputBonusData.position.ToCellCoords().ToCoord();
         }
     }
 }

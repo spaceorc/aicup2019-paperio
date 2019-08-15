@@ -86,7 +86,7 @@ namespace BrutalTester.Sim
                 return (Pos, false);
 
             var v = Pos;
-            while (!v.InCellCenter(Env.WIDTH))
+            while (!v.InCellCenter())
             {
                 v = DiffPosition(Dir.Value, v, Speed);
             }

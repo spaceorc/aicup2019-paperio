@@ -159,13 +159,13 @@ namespace Game.Sim
 
                     var v = playerData.position;
                     var arriveTime = 0;
-                    while (!v.InCellCenter(Env.WIDTH))
+                    while (!v.InCellCenter())
                     {
                         v += GetShift(playerData.direction ?? throw new InvalidOperationException(), speed);
                         arriveTime++;
                     }
 
-                    players[i].arrivePos = v.ToCellCoords(Env.WIDTH).ToCoord();
+                    players[i].arrivePos = v.ToCellCoords().ToCoord();
                     if (arriveTime == 0)
                         players[i].pos = players[i].arrivePos;
                     else
@@ -194,14 +194,14 @@ namespace Game.Sim
 
                     for (var k = 0; k < playerData.lines.Length; k++)
                     {
-                        var lv = playerData.lines[k].ToCellCoords(Env.WIDTH).ToCoord();
+                        var lv = playerData.lines[k].ToCellCoords().ToCoord();
                         players[i].line[k] = lv;
                         lines[lv] = (byte)(lines[lv] | (1 << i));
                     }
 
                     for (var k = 0; k < playerData.territory.Length; k++)
                     {
-                        var lv = playerData.territory[k].ToCellCoords(Env.WIDTH).ToCoord();
+                        var lv = playerData.territory[k].ToCellCoords().ToCoord();
                         territory[lv] = (byte)i;
                     }
                 }

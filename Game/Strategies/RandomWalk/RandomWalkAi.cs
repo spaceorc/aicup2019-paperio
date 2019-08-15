@@ -52,7 +52,7 @@ namespace Game.Strategies.RandomWalk
 
             backup.Backup(state);
             estimator.Before(state, player);
-            
+
             var pathCounter = 0;
             var validPathCounter = 0;
             Direction? bestDir = null;
@@ -62,7 +62,7 @@ namespace Game.Strategies.RandomWalk
             long simulations = 0;
             long bestPathCounter = 0;
             var opponentCapturedFound = false;
-            
+
             for (var i = 0; i < state.players.Length; i++)
             {
                 if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
@@ -70,7 +70,7 @@ namespace Game.Strategies.RandomWalk
                 else
                     paths[i].BuildPath(state, distanceMap, i, distanceMap.nearestOwned[i]);
             }
-            
+
             while (!timeManager.IsExpired)
             {
                 ++pathCounter;
@@ -126,7 +126,7 @@ namespace Game.Strategies.RandomWalk
                             {
                                 if (!opponentCapturedFound && state.players[player].opponentTerritoryCaptured > 0)
                                     opponentCapturedFound = true;
-                                
+
                                 if (!opponentCapturedFound || state.players[player].opponentTerritoryCaptured > 0)
                                 {
                                     var score = estimator.Estimate(state, player, generator.startLen);
