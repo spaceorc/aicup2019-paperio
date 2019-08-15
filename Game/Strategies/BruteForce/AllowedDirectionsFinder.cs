@@ -10,7 +10,7 @@ namespace Game.Strategies.BruteForce
 
         public AllowedDirectionsFinder()
         {
-            minimax = new Minimax(this, 2);
+            minimax = new Minimax(this, 1);
         }
 
         public byte GetAllowedDirectionsMask(ITimeManager timeManager, State state, int player)
