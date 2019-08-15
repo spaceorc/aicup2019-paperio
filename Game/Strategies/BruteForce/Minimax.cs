@@ -20,10 +20,10 @@ namespace Game.Strategies.BruteForce
         {
             this.estimator = estimator;
             this.maxDepth = maxDepth;
-            commands = new Direction[6 * maxDepth * 2];
+            commands = new Direction[6 * maxDepth * 6];
         }
 
-        public void Alphabeta(ITimeManager timeManager, State state, int player)
+        public void Alphabeta(ITimeManager timeManager, State state, int player, Direction? fixedAction = null)
         {
             bestScore = double.MinValue;
             bestDepth = 0;
@@ -34,7 +34,7 @@ namespace Game.Strategies.BruteForce
             while (!timeManager.IsExpired && depth <= maxDepth)
             {
                 Direction action;
-                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, out action, 0);
+                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, fixedAction, out action, 0);
                 if (double.IsNegativeInfinity(score))
                     break;
                 bestScore = score;
@@ -52,6 +52,7 @@ namespace Game.Strategies.BruteForce
             int activePlayer,
             double a,
             double b,
+            Direction? fixedAction,
             out Direction resultAction,
             int commandsStart)
         {
@@ -59,15 +60,15 @@ namespace Game.Strategies.BruteForce
             if (timeManager.IsExpired)
                 return double.NegativeInfinity;
 
-            if (state.isGameOver 
-                || state.players[player].status == PlayerStatus.Eliminated 
+            if (state.isGameOver
+                || state.players[player].status == PlayerStatus.Eliminated
                 || depth == 0 && activePlayer == player)
             {
                 estimations++;
                 var score = estimator.Estimate(state, player);
                 return score;
             }
-            
+
             if (activePlayer == player)
                 depth--;
 
@@ -76,10 +77,13 @@ namespace Game.Strategies.BruteForce
             for (byte d = 3; d <= top; d++)
             {
                 var action = (Direction)(((byte)(state.players[activePlayer].dir ?? Direction.Up) + d) % 4);
+                if (fixedAction != null && action != fixedAction)
+                    continue;
+                
                 var ne = state.players[activePlayer].arrivePos.NextCoord(action);
                 if (ne == ushort.MaxValue || (state.lines[ne] & (1 << activePlayer)) != 0)
                     continue;
-                
+
                 commands[commandsStart + activePlayer] = action;
                 var nextPlayer = activePlayer == player ? 0 : activePlayer + 1;
                 for (; nextPlayer < state.players.Length; nextPlayer++)
@@ -95,7 +99,7 @@ namespace Game.Strategies.BruteForce
                 StateUndo undo = null;
                 if (nextPlayer == state.players.Length)
                 {
-                    undo = state.NextTurn(commands, withUndo: true, commandsStart:commandsStart);
+                    undo = state.NextTurn(commands, withUndo: true, commandsStart: commandsStart);
                     if (state.players[player].status != PlayerStatus.Eliminated && state.players[player].arriveTime == 0)
                         nextPlayer = player;
                     else
@@ -114,7 +118,7 @@ namespace Game.Strategies.BruteForce
                     commandsStart += 6;
                 }
 
-                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, out _, commandsStart);
+                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, null, out _, commandsStart);
 
                 if (undo != null)
                 {

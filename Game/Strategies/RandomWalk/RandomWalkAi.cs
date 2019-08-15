@@ -1,8 +1,11 @@
 using System;
+using System.Diagnostics;
+using System.Text;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Sim;
 using Game.Sim.Undo;
+using Game.Strategies.BruteForce;
 using Game.Strategies.RandomWalk.PathEstimators;
 using Game.Strategies.RandomWalk.StartPathStrategies;
 
@@ -12,22 +15,25 @@ namespace Game.Strategies.RandomWalk
     {
         private readonly IStartPathStrategy startPathStrategy;
         private readonly IPathEstimator estimator;
+        private readonly bool useAllowedDirections;
         private readonly RandomPathGenerator randomPath;
         private readonly ReliablePathGenerator generator = new ReliablePathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
         private readonly StateBackup backup = new StateBackup();
+        private readonly AllowedDirectionsFinder allowedDirectionsFinder = new AllowedDirectionsFinder();
         private PathBuilder[] paths;
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new ConquerOpponentEstimator())
+            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), true)
         {
         }
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool useAllowedDirections)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
+            this.useAllowedDirections = useAllowedDirections;
             randomPath = new RandomPathGenerator();
         }
 
@@ -50,6 +56,11 @@ namespace Game.Strategies.RandomWalk
 
             backup.Backup(state);
             estimator.Before(state, player);
+            var allowedSw = Stopwatch.StartNew();
+            var allowedDirectionsMask = useAllowedDirections 
+                ? allowedDirectionsFinder.GetAllowedDirectionsMask(timeManager, state, player)
+                : (byte)0xFF;
+            allowedSw.Stop();
 
             var pathCounter = 0;
             var validPathCounter = 0;
@@ -72,7 +83,7 @@ namespace Game.Strategies.RandomWalk
             while (!timeManager.IsExpired)
             {
                 ++pathCounter;
-                if (randomPath.Generate(state, player, distanceMap, generator))
+                if (randomPath.Generate(state, player, distanceMap, generator, allowedDirectionsMask))
                 {
                     ++validPathCounter;
                     var dir = default(Direction);
@@ -162,7 +173,7 @@ namespace Game.Strategies.RandomWalk
 
                 paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
                 if (paths[player].len > 0)
-                    return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
+                    return new RequestOutput {Command = paths[player].dirs[paths[player].len - 1], Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {DescribeAllowedDirectionsMask(allowedDirectionsMask)} ({allowedSw.ElapsedMilliseconds} ms)"};
 
                 Direction? validDir = null;
                 if (state.players[player].dir == null)
@@ -174,7 +185,7 @@ namespace Game.Strategies.RandomWalk
                         {
                             validDir = (Direction)d;
                             if (state.territory[next] == player)
-                                return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
+                                return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {DescribeAllowedDirectionsMask(allowedDirectionsMask)} ({allowedSw.ElapsedMilliseconds} ms)"};
                         }
                     }
                 }
@@ -191,15 +202,15 @@ namespace Game.Strategies.RandomWalk
                         {
                             validDir = nd;
                             if (state.territory[next] == player)
-                                return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
+                                return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {DescribeAllowedDirectionsMask(allowedDirectionsMask)} ({allowedSw.ElapsedMilliseconds} ms)"};
                         }
                     }
                 }
 
-                return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}"};
+                return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {DescribeAllowedDirectionsMask(allowedDirectionsMask)} ({allowedSw.ElapsedMilliseconds} ms)"};
             }
 
-            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}. BestPathCounter: {bestPathCounter}"};
+            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}. BestPathCounter: {bestPathCounter}. AllowedDirections: {DescribeAllowedDirectionsMask(allowedDirectionsMask)} ({allowedSw.ElapsedMilliseconds} ms)"};
         }
 
         private bool TryGotoStart(State state, int player, out RequestOutput result)
@@ -216,6 +227,18 @@ namespace Game.Strategies.RandomWalk
 
             result = null;
             return false;
+        }
+
+        private static string DescribeAllowedDirectionsMask(byte allowedDirectionsMask)
+        {
+            var result = new StringBuilder();
+            for (int i = 0; i < 4; i++)
+            {
+                if ((allowedDirectionsMask & (1 << i)) != 0)
+                    result.Append(((Direction)i).ToString()[0]);
+            }
+
+            return result.ToString();
         }
 
         private bool TryKillOpponent(State state, int player, out RequestOutput result)

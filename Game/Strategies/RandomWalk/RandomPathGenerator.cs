@@ -20,7 +20,7 @@ namespace Game.Strategies.RandomWalk
             dirChances = new int[4];
         }
 
-        public bool Generate(State state, int player, DistanceMapGenerator distanceMap, ReliablePathGenerator generator)
+        public bool Generate(State state, int player, DistanceMapGenerator distanceMap, ReliablePathGenerator generator, byte allowedDirectionsMask = 0xFF)
         {
             generator.Start(state, player, distanceMap);
             while (true)
@@ -65,6 +65,9 @@ namespace Game.Strategies.RandomWalk
                 for (var i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
+                    if (generator.len == 0 && (allowedDirectionsMask & (1 << (int)nextDir)) == 0)
+                        continue;
+                    
                     var nextPos = generator.pos.NextCoord(nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
