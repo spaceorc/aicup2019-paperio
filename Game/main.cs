@@ -4,6 +4,8 @@ using Game.Helpers;
 using Game.Protocol;
 using Game.Strategies;
 using Game.Strategies.RandomWalk;
+using Game.Strategies.RandomWalk.PathEstimators;
+using Game.Strategies.RandomWalk.StartPathStrategies;
 
 namespace Game
 {
@@ -33,7 +35,10 @@ namespace Game
                 {
                     Logger.Info($"Config: {readResult.Config.ToJson()}");
                     timeManager = new TimeManager(readResult.Config);
-                    strategy = new Strategy(new RandomWalkAi());
+                    var ai = new RandomWalkAi();
+                    if (args.ElementAtOrDefault(0) == "prev")
+                        ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), interceptEmptyWay: false);
+                    strategy = new Strategy(ai);
                     continue;
                 }
 

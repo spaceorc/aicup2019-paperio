@@ -12,6 +12,7 @@ namespace Game.Strategies.RandomWalk
     {
         private readonly IStartPathStrategy startPathStrategy;
         private readonly IPathEstimator estimator;
+        private readonly bool interceptEmptyWay;
         private readonly RandomPathGenerator randomPath;
         private readonly ReliablePathGenerator generator = new ReliablePathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
@@ -20,15 +21,16 @@ namespace Game.Strategies.RandomWalk
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), walkOnTerritory: true)
+            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), interceptEmptyWay: true)
         {
         }
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool walkOnTerritory)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool interceptEmptyWay)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
-            randomPath = new RandomPathGenerator(walkOnTerritory);
+            this.interceptEmptyWay = interceptEmptyWay;
+            randomPath = new RandomPathGenerator();
         }
 
         public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)
@@ -48,12 +50,9 @@ namespace Game.Strategies.RandomWalk
             if (TryKillOpponent(state, player, out var kill))
                 return kill;
 
-            if (!randomPath.walkOnTerritory && TryGotoStart(state, player, out var gotoStart))
-                return gotoStart;
-
             backup.Backup(state);
             estimator.Before(state, player);
-            var invalidPathCounter = 0;
+            
             var pathCounter = 0;
             var validPathCounter = 0;
             Direction? bestDir = null;
@@ -61,6 +60,16 @@ namespace Game.Strategies.RandomWalk
             var bestLen = 0;
             string bestPath = null;
             long simulations = 0;
+            var opponentCapturedFound = false;
+            
+            for (var i = 0; i < state.players.Length; i++)
+            {
+                if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
+                    paths[i].Clear();
+                else
+                    paths[i].BuildPath(state, distanceMap, i, distanceMap.nearestOwned[i]);
+            }
+            
             while (!timeManager.IsExpired)
             {
                 ++pathCounter;
@@ -70,17 +79,12 @@ namespace Game.Strategies.RandomWalk
                     var dir = default(Direction);
                     for (var i = 0; i < state.players.Length; i++)
                     {
-                        if (i == player)
+                        if (i != player)
+                            paths[i].Reset();
+                        else
                         {
                             paths[i].BuildPath(state, generator, i);
                             dir = paths[i].dirs[paths[i].len - 1];
-                        }
-                        else
-                        {
-                            if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
-                                paths[i].Clear();
-                            else
-                                paths[i].BuildPath(state, distanceMap, i, distanceMap.nearestOwned[i]);
                         }
                     }
 
@@ -117,19 +121,28 @@ namespace Game.Strategies.RandomWalk
                         simulations++;
                         if (state.isGameOver || state.players[player].status == PlayerStatus.Eliminated || paths[player].len == 0 && state.players[player].arriveTime == 0)
                         {
-                            var score = estimator.Estimate(state, player, generator.startLen);
-                            if (score > bestScore || score > bestScore - 1e-6 && generator.len < bestLen)
+                            if (state.players[player].status != PlayerStatus.Eliminated)
                             {
-                                bestScore = score;
-                                bestDir = dir;
-                                bestLen = generator.len;
-                                bestPath = paths[player].Print();
-                                Logger.Debug($"Score: {bestScore}; Path: {bestPath}");
-                                if (Logger.IsEnabled(Logger.Level.Debug))
+                                if (!opponentCapturedFound && state.players[player].opponentTerritoryCaptured > 0)
+                                    opponentCapturedFound = true;
+                                
+                                if (!opponentCapturedFound || state.players[player].opponentTerritoryCaptured > 0)
                                 {
-                                    for (var i = 0; i < paths.Length; i++)
+                                    var score = estimator.Estimate(state, player, generator.startLen);
+                                    if (score > bestScore || score > bestScore - 1e-6 && generator.len < bestLen)
                                     {
-                                        Logger.Debug($"{i}: {paths[i].Print()} {state.players[i].status}");
+                                        bestScore = score;
+                                        bestDir = dir;
+                                        bestLen = generator.len;
+                                        bestPath = paths[player].Print();
+                                        Logger.Debug($"Score: {bestScore}; Path: {bestPath}");
+                                        if (Logger.IsEnabled(Logger.Level.Debug))
+                                        {
+                                            for (var i = 0; i < paths.Length; i++)
+                                            {
+                                                Logger.Debug($"{i}: {paths[i].Print()} {state.players[i].status}");
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -140,13 +153,11 @@ namespace Game.Strategies.RandomWalk
 
                     backup.Restore(state);
                 }
-                else
-                    invalidPathCounter++;
             }
 
             if (bestDir == null)
             {
-                if (randomPath.walkOnTerritory && TryGotoStart(state, player, out gotoStart))
+                if (TryGotoStart(state, player, out var gotoStart))
                     return gotoStart;
 
                 paths[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);

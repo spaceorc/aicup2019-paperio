@@ -14,11 +14,8 @@ namespace Game.Strategies.RandomWalk
         private readonly int[] dirChances;
         private int dirsCount;
 
-        public readonly bool walkOnTerritory;
-
-        public RandomPathGenerator(bool walkOnTerritory)
+        public RandomPathGenerator()
         {
-            this.walkOnTerritory = walkOnTerritory;
             dirs = new Direction[4];
             dirChances = new int[4];
         }
@@ -71,15 +68,6 @@ namespace Game.Strategies.RandomWalk
                     var nextPos = generator.pos.NextCoord(nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
-
-                    if (!walkOnTerritory)
-                    {
-                        if (generator.pos == state.players[player].arrivePos)
-                        {
-                            if (state.territory[generator.pos] == player && state.territory[nextPos] == player)
-                                continue;
-                        }
-                    }
 
                     if (!generator.TryAdd(state, player, distanceMap, nextPos))
                         continue;
