@@ -28,6 +28,7 @@ namespace Game.Protocol
             if (type == "start_game")
             {
                 var config = json["params"].ToObject<Config>();
+                config.ApplyToEnv();
                 return new ReadResult {Type = type, Config = config};
             }
 

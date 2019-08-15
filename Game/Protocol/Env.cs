@@ -15,9 +15,9 @@ namespace Game.Protocol
         public const int LINE_KILL_SCORE = 50;
         public const int SAW_KILL_SCORE = 150;
         
-        public const int MAX_EXECUTION_TIME = 200;
-        public const int REQUEST_MAX_TIME = 9;
-        public const int MAX_TICK_COUNT = 2500;
+        public static int MAX_EXECUTION_TIME = 200;
+        public static int REQUEST_MAX_TIME = 9;
+        public static int MAX_TICK_COUNT = 2500;
 
         public const int WINDOW_WIDTH = WIDTH * X_CELLS_COUNT;
         public const int WINDOW_HEIGHT = WIDTH * Y_CELLS_COUNT;
