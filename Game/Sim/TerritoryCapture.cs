@@ -8,15 +8,12 @@ namespace Game.Sim
     {
         private int gen;
         private int[] territoryCaptureMask;
-        private int[] territoryCaptureCount;
-        private ushort[,] territoryCapture;
+        public int[] territoryCaptureCount;
+        public ushort[,] territoryCapture;
 
         private int queueGen;
         private ushort[] queue;
         private int[] used;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int CapturedCountBy(int player) => territoryCaptureCount[player];
 
         public void Init(int playerCount)
         {

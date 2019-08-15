@@ -19,7 +19,7 @@ namespace Game.Sim
         public Bonus[] bonuses;
         public Player[] players;
 
-        private readonly TerritoryCapture capture = new TerritoryCapture();
+        public readonly TerritoryCapture capture = new TerritoryCapture();
         private UndoPool undos;
 
         public string Print(bool territoryOnly = false)
@@ -430,7 +430,7 @@ namespace Game.Sim
                 if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue)
                 {
                     capture.Capture(this, i);
-                    if (capture.CapturedCountBy(i) > 0)
+                    if (capture.territoryCaptureCount[i] > 0)
                     {
                         for (var l = 0; l < players[i].lineCount; l++)
                         {
@@ -439,7 +439,7 @@ namespace Game.Sim
                         }
 
                         players[i].lineCount = 0;
-                        players[i].tickScore += Env.NEUTRAL_TERRITORY_SCORE * capture.CapturedCountBy(i);
+                        players[i].tickScore += Env.NEUTRAL_TERRITORY_SCORE * capture.territoryCaptureCount[i];
                     }
                 }
             }
@@ -488,7 +488,7 @@ namespace Game.Sim
                 if (players[i].status == PlayerStatus.Eliminated)
                     continue;
 
-                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.CapturedCountBy(i) == 0)
+                if (players[i].arriveTime == 0 && players[i].arrivePos != ushort.MaxValue && capture.territoryCaptureCount[i] == 0)
                     players[i].UpdateLines(i, this);
             }
 

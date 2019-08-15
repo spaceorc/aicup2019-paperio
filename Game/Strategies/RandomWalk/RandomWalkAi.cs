@@ -12,7 +12,6 @@ namespace Game.Strategies.RandomWalk
     {
         private readonly IStartPathStrategy startPathStrategy;
         private readonly IPathEstimator estimator;
-        private readonly bool interceptEmptyWay;
         private readonly RandomPathGenerator randomPath;
         private readonly ReliablePathGenerator generator = new ReliablePathGenerator();
         private readonly DistanceMapGenerator distanceMap = new DistanceMapGenerator();
@@ -21,15 +20,14 @@ namespace Game.Strategies.RandomWalk
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), interceptEmptyWay: true)
+            : this(new NearestOpponentStartPathStrategy(), new ConquerOpponentEstimator())
         {
         }
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool interceptEmptyWay)
+        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
-            this.interceptEmptyWay = interceptEmptyWay;
             randomPath = new RandomPathGenerator();
         }
 
