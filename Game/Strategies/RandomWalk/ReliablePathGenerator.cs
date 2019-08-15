@@ -94,6 +94,12 @@ namespace Game.Strategies.RandomWalk
                         }
 
                         var prevOtherPos = distanceMap.paths[other, nextPos];
+                        if (prevOtherPos == -1 || prevOtherPos == int.MaxValue)
+                        {
+                            nextTimeLimit = -1;
+                            break;
+                        }
+
                         var prevShiftTime = Player.GetShiftTime(distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
                         var otherEnterTime = otherTimeToPos - prevShiftTime;
 
