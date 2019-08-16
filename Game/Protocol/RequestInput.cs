@@ -12,6 +12,7 @@ namespace Game.Protocol
         {
             public BonusType type;
             public V position;
+            public int? active_ticks;
         }
 
         public class PlayerData

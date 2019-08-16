@@ -63,9 +63,9 @@ namespace Game.Strategies.RandomWalk
                 if (state.bonuses[b].pos == nextPos)
                 {
                     if (state.bonuses[b].type == BonusType.S)
-                        nextSlowLeft += player == 0 ? 50 : 10;
+                        nextSlowLeft += state.bonuses[b].ActiveTicks(player);
                     else if (state.bonuses[b].type == BonusType.N)
-                        nextNitroLeft += player == 0 ? 10 : 50;
+                        nextNitroLeft += state.bonuses[b].ActiveTicks(player);
                 }
             }
 

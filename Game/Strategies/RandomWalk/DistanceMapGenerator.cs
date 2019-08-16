@@ -189,11 +189,11 @@ namespace Game.Strategies.RandomWalk
                                 {
                                     if (state.bonuses[b].type == BonusType.S)
                                     {
-                                        slowLeft += player == 0 ? 50 : 10;
+                                        slowLeft += state.bonuses[b].ActiveTicks(player);
                                     }
                                     else if (state.bonuses[b].type == BonusType.N)
                                     {
-                                        nitroLeft += player == 0 ? 10 : 50;
+                                        nitroLeft += state.bonuses[b].ActiveTicks(player);
                                     }
                                 }
                             }

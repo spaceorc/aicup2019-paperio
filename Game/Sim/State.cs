@@ -213,7 +213,7 @@ namespace Game.Sim
             bonusCount = 0;
             for (var i = 0; i < input.bonuses.Length; i++)
             {
-                bonuses[bonusCount++] = new Bonus(this, input.bonuses[i]);
+                bonuses[bonusCount++] = new Bonus(input.bonuses[i]);
             }
 
             V GetShift(Direction direction, int d) =>
@@ -600,7 +600,7 @@ namespace Game.Sim
                         {
                             if (bonuses[b].type == BonusType.N)
                             {
-                                var bonusTime = i == 0 ? 10 : 50;
+                                var bonusTime = bonuses[b].ActiveTicks(i);
                                 if (players[i].nitroLeft > 0)
                                     players[i].nitroLeft += bonusTime;
                                 else
@@ -610,9 +610,9 @@ namespace Game.Sim
                             }
                             else if (bonuses[b].type == BonusType.S)
                             {
-                                var bonusTime = i == 0 ? 50 : 10;
+                                var bonusTime = bonuses[b].ActiveTicks(i);
                                 if (players[i].slowLeft > 0)
-                                    players[i].slowLeft += bonusTime; // random 10..50
+                                    players[i].slowLeft += bonusTime;
                                 else
                                     players[i].slowLeft = bonusTime;
                                 players[i].UpdateShiftTime();
