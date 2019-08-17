@@ -33,6 +33,7 @@ namespace Game.Sim
                 writer.WriteLine($"slowLeft: {string.Join(",", players.Select(x => x.slowLeft))}");
                 writer.WriteLine($"nitrosCollected: {string.Join(",", players.Select(x => x.nitrosCollected))}");
                 writer.WriteLine($"slowsCollected: {string.Join(",", players.Select(x => x.slowsCollected))}");
+                writer.WriteLine($"sawsCollected: {string.Join(",", players.Select(x => x.sawsCollected))}");
                 writer.WriteLine($"opponentTerritoryCaptured: {string.Join(",", players.Select(x => x.opponentTerritoryCaptured))}");
                 writer.WriteLine($"lineCount: {string.Join(",", players.Select(x => x.lineCount))}");
                 for (var y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
@@ -189,6 +190,7 @@ namespace Game.Sim
                     players[i].territory = playerData.territory.Length;
                     players[i].slowsCollected = 0;
                     players[i].nitrosCollected = 0;
+                    players[i].sawsCollected = 0;
                     players[i].killedBy = 0;
                     players[i].opponentTerritoryCaptured = 0;
 
@@ -620,6 +622,7 @@ namespace Game.Sim
                             }
                             else if (bonuses[b].type == BonusType.Saw)
                             {
+                                players[i].sawsCollected++;
                                 var sawStatus = 0ul;
                                 var v = players[i].arrivePos;
                                 while (true)
@@ -657,8 +660,8 @@ namespace Game.Sim
                                         continue;
 
                                     players[i].tickScore += Env.SAW_SCORE;
-                                    var vx = v % Env.X_CELLS_COUNT;
-                                    var vy = v / Env.X_CELLS_COUNT;
+                                    var vx = players[i].arrivePos % Env.X_CELLS_COUNT;
+                                    var vy = players[i].arrivePos / Env.X_CELLS_COUNT;
                                     if (players[i].dir.Value == Direction.Up || players[i].dir.Value == Direction.Down)
                                     {
                                         if (players[k].arrivePos % Env.X_CELLS_COUNT < vx)
@@ -776,9 +779,14 @@ namespace Game.Sim
                     case PlayerStatus.Broken:
                         playersLeft++;
                         players[i].score += players[i].tickScore;
+                        
+                        // other then real sim - by design
+                        if (players[i].territory == 0)
+                            players[i].status = PlayerStatus.Eliminated;
+                        
                         break;
                 }
-
+                
                 players[i].tickScore = 0;
             }
 

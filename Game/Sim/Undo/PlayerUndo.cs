@@ -17,6 +17,7 @@ namespace Game.Sim.Undo
         private int territory;
         private int nitrosCollected;
         private int slowsCollected;
+        private int sawsCollected;
         private int opponentTerritoryCaptured;        
         private int lineCount;
         private readonly ushort[] line;
@@ -42,6 +43,7 @@ namespace Game.Sim.Undo
             lineCount = player.lineCount;
             nitrosCollected = player.nitrosCollected;
             slowsCollected = player.slowsCollected;
+            sawsCollected = player.sawsCollected;
             opponentTerritoryCaptured = player.opponentTerritoryCaptured;
         }
 
@@ -84,6 +86,7 @@ namespace Game.Sim.Undo
             player.lineCount = lineCount;
             player.nitrosCollected = nitrosCollected;
             player.slowsCollected = slowsCollected;
+            player.sawsCollected = sawsCollected;
             player.opponentTerritoryCaptured = opponentTerritoryCaptured;
         }
     }

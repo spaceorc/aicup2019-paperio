@@ -5,22 +5,23 @@ namespace Game.Sim.Undo
 {
     public class PlayerBackup
     {
-        private PlayerStatus status;
-        private ushort pos;
-        private ushort arrivePos;
-        private Direction? dir;
-        private int arriveTime;
-        private int shiftTime;
-        private byte killedBy;
-        private int score;
-        private int nitroLeft;
-        private int slowLeft;
-        private int territory;
-        private int nitrosCollected;
-        private int slowsCollected;
-        private int opponentTerritoryCaptured;
-        private int lineCount;
-        private ushort[] line;
+        public PlayerStatus status;
+        public ushort arrivePos;
+        public ushort pos;
+        public Direction? dir;
+        public int arriveTime;
+        public int shiftTime;
+        public byte killedBy;
+        public int score;
+        public int nitroLeft;
+        public int slowLeft;
+        public int territory;
+        public int nitrosCollected;
+        public int slowsCollected;
+        public int sawsCollected;
+        public int opponentTerritoryCaptured;
+        public int lineCount;
+        public ushort[] line;
 
         public void Backup(Player player)
         {
@@ -41,6 +42,7 @@ namespace Game.Sim.Undo
             lineCount = player.lineCount;
             nitrosCollected = player.nitrosCollected;
             slowsCollected = player.slowsCollected;
+            sawsCollected = player.sawsCollected;
             opponentTerritoryCaptured = player.opponentTerritoryCaptured;
 
             if (line == null)
@@ -68,6 +70,7 @@ namespace Game.Sim.Undo
             player.lineCount = lineCount;
             player.nitrosCollected = nitrosCollected;
             player.slowsCollected = slowsCollected;
+            player.sawsCollected = sawsCollected;
             player.opponentTerritoryCaptured = opponentTerritoryCaptured;
             
             Array.Copy(line, player.line, lineCount);

@@ -20,6 +20,7 @@ namespace Game.Sim
         public int territory;
         public int nitrosCollected;
         public int slowsCollected;
+        public int sawsCollected;
         public int opponentTerritoryCaptured;
         
         public int lineCount;
