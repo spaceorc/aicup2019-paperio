@@ -60,11 +60,11 @@ namespace Game.Strategies.BruteForce
                         var active = distanceMap.nearestOpponentActive[i, player];
                         if (active != ushort.MaxValue)
                         {
-                            var dist = distanceMap.distances[i, player];
+                            var dist = distanceMap.distances[i, active];
                             if (dist != -1 && dist != int.MaxValue && dist <= 2 * depth)
                             {
                                 skipPlayers[i] = false;
-                                break;
+                                continue;
                             }
                         }
 
@@ -73,7 +73,7 @@ namespace Game.Strategies.BruteForce
                             if (facts.sawCollectDistance[i] <= depth)
                             {
                                 skipPlayers[i] = false;
-                                break;
+                                continue;
                             }
                         }
                     }

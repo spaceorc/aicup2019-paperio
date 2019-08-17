@@ -173,8 +173,8 @@ namespace Game.Strategies.RandomWalk
 
                     if (nearestOpponentActive[player, opp] == ushort.MaxValue)
                     {
-                        if (state.players[opp].arrivePos == cur || (state.lines[cur] & ~(1 << opp)) != 0)
-                            nearestOpponentOwned[player] = cur;
+                        if (state.players[opp].arrivePos == cur || (state.lines[cur] & (1 << opp)) != 0)
+                            nearestOpponentActive[player, opp] = cur;
                     }
                 }
 
