@@ -164,7 +164,7 @@ namespace Game.Strategies.BruteForce
                         undo = nextUndo;
                         commandsStart += 6;
 
-                        if (state.players[player].status == PlayerStatus.Eliminated)
+                        if (state.isGameOver || state.players[player].status == PlayerStatus.Eliminated)
                         {
                             nextPlayer = state.players.Length;
                             break;

@@ -51,10 +51,13 @@ namespace UnitTests
 
             var state = new State();
 
-            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (24)"));
+            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (26)"));
 
             var visioInfo = (JArray)visio["visio_info"];
-            var t = 895;
+            var config = visioInfo.Single(x => x["type"]?.ToString() == "start_game").ToObject<Config>();;
+            config.ApplyToEnv();
+            
+            var t = 1477;
 
             var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == t.ToString());
             var prevTick = visioInfo.Single(x => x["tick_num"]?.ToString() == (t - 1).ToString());
@@ -67,7 +70,7 @@ namespace UnitTests
                     pp.direction = kvp.Value.direction;
             }
 
-            state.SetInput(input, "5");
+            state.SetInput(input, "1");
 
             Console.Out.WriteLine(state.Print());
 
@@ -93,7 +96,7 @@ namespace UnitTests
 
             var ai = new RandomWalkAi();
             
-             var command = ai.GetCommand(state, 0, new SimpleTimeManager(450), new Random(1853764998));
+             var command = ai.GetCommand(state, 0, new TestingTimeManager(10000, 1000), new Random(1853764998));
              Console.Out.WriteLine(command.ToJson());
         }
 
