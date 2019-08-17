@@ -6,7 +6,7 @@ namespace Game.Strategies.RandomWalk.StartPathStrategies
 {
     public class NearestStartPathStrategy : IStartPathStrategy
     {
-        public RequestOutput GotoStart(State state, int player, DistanceMap distanceMap)
+        public RequestOutput GotoStart(State state, int player, byte allowedDirectionsMask, DistanceMap distanceMap)
         {
             var empty = distanceMap.nearestEmpty[player];
             if (empty == ushort.MaxValue)

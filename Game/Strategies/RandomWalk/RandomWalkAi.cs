@@ -146,24 +146,31 @@ namespace Game.Strategies.RandomWalk
 
             if (bestDir == null)
             {
-                if (TryGotoStart(state, player, out var gotoStart))
+                if (TryGotoStart(state, player, allowedDirectionsMask, out var gotoStart))
                     return gotoStart;
 
                 facts.pathsToOwned[player].BuildPath(state, distanceMap, player, distanceMap.nearestOwned[player]);
                 if (facts.pathsToOwned[player].len > 0)
-                    return new RequestOutput {Command = facts.pathsToOwned[player].CurrentAction(), Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                {
+                    var returnAction = facts.pathsToOwned[player].CurrentAction();
+                    if ((allowedDirectionsMask & (1 << (int)returnAction)) != 0 || allowedDirectionsMask == 0)
+                        return new RequestOutput {Command = returnAction, Debug = $"No path found. Returning back to territory. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                }
 
                 Direction? validDir = null;
                 if (state.players[player].dir == null)
                 {
                     for (var d = 0; d < 4; d++)
                     {
-                        var next = state.players[player].arrivePos.NextCoord((Direction)d);
-                        if (next != ushort.MaxValue)
+                        if ((allowedDirectionsMask & (1 << d)) != 0)
                         {
-                            validDir = (Direction)d;
-                            if (state.territory[next] == player)
-                                return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                            var next = state.players[player].arrivePos.NextCoord((Direction)d);
+                            if (next != ushort.MaxValue)
+                            {
+                                validDir = (Direction)d;
+                                if (state.territory[next] == player)
+                                    return new RequestOutput {Command = (Direction)d, Debug = $"No path found. Walking around (null). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                            }
                         }
                     }
                 }
@@ -175,27 +182,30 @@ namespace Game.Strategies.RandomWalk
                         var nd = (Direction)(((int)state.players[player].dir.Value + 3 + sd + d) % 4);
                         if (nd == (Direction)(((int)state.players[player].dir.Value + 2) % 4))
                             continue;
-                        var next = state.players[player].arrivePos.NextCoord(nd);
-                        if (next != ushort.MaxValue)
+                        if ((allowedDirectionsMask & (1 << (int)nd)) != 0)
                         {
-                            validDir = nd;
-                            if (state.territory[next] == player)
-                                return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                            var next = state.players[player].arrivePos.NextCoord(nd);
+                            if (next != ushort.MaxValue)
+                            {
+                                validDir = nd;
+                                if (state.territory[next] == player)
+                                    return new RequestOutput {Command = nd, Debug = $"No path found. Walking around. Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                            }
                         }
                     }
                 }
 
-                return new RequestOutput {Command = validDir, Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                return new RequestOutput {Command = validDir ?? throw new InvalidOperationException("validDir is null"), Debug = $"No path found. Walking around (not self). Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
             }
 
-            return new RequestOutput {Command = bestDir, Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}. BestPathCounter: {bestPathCounter}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+            return new RequestOutput {Command = bestDir ?? throw new InvalidOperationException("bestDir is null"), Debug = $"Paths: {pathCounter}. ValidPaths: {validPathCounter}. Simulations: {simulations}. BestLen: {bestLen}. BestPath: {bestPath}. BestScore: {bestScore}. BestPathCounter: {bestPathCounter}. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
         }
 
-        private bool TryGotoStart(State state, int player, out RequestOutput result)
+        private bool TryGotoStart(State state, int player, byte allowedDirectionsMask, out RequestOutput result)
         {
             if (state.territory[state.players[player].arrivePos] == player)
             {
-                var startPathOutput = startPathStrategy.GotoStart(state, player, distanceMap);
+                var startPathOutput = startPathStrategy.GotoStart(state, player, allowedDirectionsMask, distanceMap);
                 if (startPathOutput != null)
                 {
                     result = startPathOutput;
