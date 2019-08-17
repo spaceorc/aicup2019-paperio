@@ -12,6 +12,8 @@ namespace Game.Sim.Undo
         private bool captured;
         private readonly byte[] territory;
         private readonly PlayerUndo[] undoPlayerDatas;
+        
+        public StateUndo prevUndo;
 
         public StateUndo(int playerCount)
         {

@@ -6,7 +6,7 @@ namespace Game.Strategies.RandomWalk.StartPathStrategies
 {
     public class SafestOpponentStartPathStrategy : IStartPathStrategy
     {
-        public RequestOutput GotoStart(State state, int player, DistanceMapGenerator distanceMap)
+        public RequestOutput GotoStart(State state, int player, DistanceMap distanceMap)
         {
             var bestTarget = ushort.MaxValue;
             var bestEstimation = int.MinValue; 
@@ -52,7 +52,7 @@ namespace Game.Strategies.RandomWalk.StartPathStrategies
             return null;
         }
 
-        private int Estimate(State state, int player, DistanceMapGenerator distanceMap, ushort target)
+        private int Estimate(State state, int player, DistanceMap distanceMap, ushort target)
         {
             //var gainTime = distanceMap.times[player, target];
             var minTime = int.MaxValue;

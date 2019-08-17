@@ -20,12 +20,12 @@ namespace Game.Strategies.RandomWalk
             dirChances = new int[4];
         }
 
-        public bool Generate(State state, int player, DistanceMapGenerator distanceMap, ReliablePathGenerator generator, byte allowedDirectionsMask = 0xFF)
+        public bool Generate(State state, int player, DistanceMap distanceMap, ReliablePathBuilder builder, byte allowedDirectionsMask = 0xFF)
         {
-            generator.Start(state, player, distanceMap);
+            builder.Start(state, player, distanceMap);
             while (true)
             {
-                if (generator.dir == null)
+                if (builder.dir == null)
                 {
                     dirs[0] = Direction.Up;
                     dirs[1] = Direction.Left;
@@ -40,7 +40,7 @@ namespace Game.Strategies.RandomWalk
                 }
                 else
                 {
-                    dirs[0] = generator.dir.Value;
+                    dirs[0] = builder.dir.Value;
                     dirs[1] = (Direction)(((int)dirs[0] + 1) % 4);
                     dirs[2] = (Direction)(((int)dirs[0] + 3) % 4);
                     dirsCount = 3;
@@ -65,14 +65,14 @@ namespace Game.Strategies.RandomWalk
                 for (var i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
-                    if (generator.len == 0 && (allowedDirectionsMask & (1 << (int)nextDir)) == 0)
+                    if (builder.len == 0 && (allowedDirectionsMask & (1 << (int)nextDir)) == 0)
                         continue;
                     
-                    var nextPos = generator.pos.NextCoord(nextDir);
+                    var nextPos = builder.pos.NextCoord(nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
 
-                    if (!generator.TryAdd(state, player, distanceMap, nextPos))
+                    if (!builder.TryAdd(state, player, distanceMap, nextPos))
                         continue;
 
                     found = true;
@@ -82,7 +82,7 @@ namespace Game.Strategies.RandomWalk
                 if (!found)
                     return false;
 
-                if (generator.started && state.territory[generator.pos] == player)
+                if (builder.started && state.territory[builder.pos] == player)
                     return true;
             }
         }

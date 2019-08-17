@@ -5,29 +5,33 @@ using Game.Sim;
 
 namespace Game.Strategies.RandomWalk
 {
-    public class DistanceMapGenerator
+    public class DistanceMap
     {
         public int[,] times;
+        public int[,] distances;
         public int[,] nitroLefts;
         public int[,] slowLefts;
         public int[,] paths;
         public ushort[] queue;
         public ushort[] nearestEmpty;
         public ushort[] nearestOwned;
-        public ushort[] nearestOpponent;
+        public ushort[] nearestOpponentOwned;
+        public ushort[,] nearestOpponentActive;
 
         public void Build(State state)
         {
             if (times == null)
             {
                 times = new int[state.players.Length, Env.CELLS_COUNT];
+                distances = new int[state.players.Length, Env.CELLS_COUNT];
                 nitroLefts = new int[state.players.Length, Env.CELLS_COUNT];
                 slowLefts = new int[state.players.Length, Env.CELLS_COUNT];
                 paths = new int[state.players.Length, Env.CELLS_COUNT];
                 queue = new ushort[Env.CELLS_COUNT];
                 nearestEmpty = new ushort[state.players.Length];
                 nearestOwned = new ushort[state.players.Length];
-                nearestOpponent = new ushort[state.players.Length];
+                nearestOpponentOwned = new ushort[state.players.Length];
+                nearestOpponentActive = new ushort[state.players.Length, state.players.Length];
             }
 
             for (var i = 0; i < state.players.Length; i++)
@@ -107,12 +111,16 @@ namespace Game.Strategies.RandomWalk
         private void Build(State state, int player)
         {
             nearestEmpty[player] = ushort.MaxValue;
-            nearestOpponent[player] = ushort.MaxValue;
+            nearestOpponentOwned[player] = ushort.MaxValue;
+            for (int opp = 0; opp < state.players.Length; opp++)
+                nearestOpponentActive[player, opp] = ushort.MaxValue;
+
             nearestOwned[player] = ushort.MaxValue;
-            for (var c = 0; c < times.GetLength(1); c++)
+            for (var c = 0; c < Env.CELLS_COUNT; c++)
             {
                 var isLine = (state.lines[c] & (1 << player)) != 0;
                 times[player, c] = isLine ? -1 : int.MaxValue;
+                distances[player, c] = isLine ? -1 : int.MaxValue;
                 paths[player, c] = isLine ? -1 : int.MaxValue;
             }
 
@@ -124,6 +132,7 @@ namespace Game.Strategies.RandomWalk
             if (state.players[player].status == PlayerStatus.Broken)
             {
                 times[player, start] = 0;
+                distances[player, start] = 0;
                 return;
             }
 
@@ -142,6 +151,7 @@ namespace Game.Strategies.RandomWalk
 
             queue[head++] = start;
             times[player, start] = state.players[player].arriveTime;
+            distances[player, start] = 0;
             var startDir = state.players[player].dir;
             while (head != tail)
             {
@@ -150,10 +160,23 @@ namespace Game.Strategies.RandomWalk
 
                 if (nearestEmpty[player] == ushort.MaxValue && state.territory[cur] != player)
                     nearestEmpty[player] = cur;
-                if (nearestOpponent[player] == ushort.MaxValue && state.territory[cur] != 0xFF && state.territory[cur] != player)
-                    nearestOpponent[player] = cur;
+                if (nearestOpponentOwned[player] == ushort.MaxValue && state.territory[cur] != 0xFF && state.territory[cur] != player)
+                    nearestOpponentOwned[player] = cur;
+
                 if (nearestOwned[player] == ushort.MaxValue && state.territory[cur] == player)
                     nearestOwned[player] = cur;
+
+                for (int opp = 0; opp < state.players.Length; opp++)
+                {
+                    if (opp == player || state.players[opp].status == PlayerStatus.Eliminated)
+                        continue;
+
+                    if (nearestOpponentActive[player, opp] == ushort.MaxValue)
+                    {
+                        if (state.players[opp].arrivePos == cur || (state.lines[cur] & ~(1 << opp)) != 0)
+                            nearestOpponentOwned[player] = cur;
+                    }
+                }
 
                 for (var dir = 0; dir < 4; dir++)
                 {
@@ -172,6 +195,7 @@ namespace Game.Strategies.RandomWalk
                         if (nextDist < times[player, next])
                         {
                             times[player, next] = nextDist;
+                            distances[player, next] = distances[player, cur] + 1;
                             paths[player, next] = cur;
 
                             queue[head] = next;

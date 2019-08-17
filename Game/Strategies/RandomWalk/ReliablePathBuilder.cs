@@ -4,7 +4,7 @@ using Game.Sim;
 
 namespace Game.Strategies.RandomWalk
 {
-    public class ReliablePathGenerator
+    public class ReliablePathBuilder
     {
         public ushort[] coords;
         public int[] times;
@@ -22,14 +22,14 @@ namespace Game.Strategies.RandomWalk
         private int nitroLeft;
         private int slowLeft;
 
-        public ReliablePathGenerator()
+        public ReliablePathBuilder()
         {
             coords = new ushort[Env.CELLS_COUNT];
             times = new int[Env.CELLS_COUNT];
             used = new int[Env.CELLS_COUNT];
         }
 
-        public void Start(State state, int player, DistanceMapGenerator distanceMap)
+        public void Start(State state, int player, DistanceMap distanceMap)
         {
             PrepareTimeLimit(state, player, distanceMap);
             len = 0;
@@ -43,7 +43,7 @@ namespace Game.Strategies.RandomWalk
             slowLeft = state.players[player].slowLeft;
         }
 
-        public bool TryAdd(State state, int player, DistanceMapGenerator distanceMap, ushort nextPos)
+        public bool TryAdd(State state, int player, DistanceMap distanceMap, ushort nextPos)
         {
             if (used[nextPos] == gen)
                 return false;
@@ -189,7 +189,7 @@ namespace Game.Strategies.RandomWalk
             return true;
         }
 
-        private void PrepareTimeLimit(State state, int player, DistanceMapGenerator distanceMap)
+        private void PrepareTimeLimit(State state, int player, DistanceMap distanceMap)
         {
             gen++;
             timeLimit = Env.MAX_TICK_COUNT - state.time;

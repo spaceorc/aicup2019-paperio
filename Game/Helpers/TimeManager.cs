@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using Game.Protocol;
 
 namespace Game.Helpers
@@ -69,10 +70,30 @@ namespace Game.Helpers
         }
 
         public bool IsExpired => Elapsed >= millisPerRequest;
+
+        public ITimeManager GetNested(int millis) => new SimpleTimeManager(millis);
+
         public bool BeStupid => stupidMode;
         public bool BeSmart => millisPerRequest >= beSmartMillisPerRequest;
         public bool IsExpiredGlobal => timeElapsed > totalTime;
         public int Elapsed => (int)stopwatch.ElapsedMilliseconds + 3;
         public int ElapsedGlobal => timeElapsed;
+    }
+
+    public class SimpleTimeManager : ITimeManager
+    {
+        private readonly int millis;
+        private readonly Stopwatch stopwatch;
+
+        public SimpleTimeManager(int millis)
+        {
+            this.millis = millis;
+            stopwatch = Stopwatch.StartNew();
+        }
+
+        public bool IsExpired => Elapsed >= millis;
+        public int Elapsed => (int)stopwatch.ElapsedMilliseconds;
+
+        public ITimeManager GetNested(int millis) => new SimpleTimeManager(millis);
     }
 }

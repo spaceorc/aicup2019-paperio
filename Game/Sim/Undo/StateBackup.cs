@@ -4,14 +4,15 @@ namespace Game.Sim.Undo
 {
     public class StateBackup
     {
-        private bool isGameOver;
-        private int time;
+        public byte[] territory;
+        public int time;
+        public PlayerBackup[] players;
+
         private int territoryVersion;
-        private byte[] territory;
+        private bool isGameOver;
         private byte[] lines;
         private int bonusCount;
         private BonusBackup[] bonuses;
-        private PlayerBackup[] players;
 
         public void Backup(State state)
         {

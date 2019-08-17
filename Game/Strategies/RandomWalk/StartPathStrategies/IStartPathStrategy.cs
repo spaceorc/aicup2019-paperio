@@ -5,6 +5,6 @@ namespace Game.Strategies.RandomWalk.StartPathStrategies
 {
     public interface IStartPathStrategy
     {
-        RequestOutput GotoStart(State state, int player, DistanceMapGenerator distanceMap);
+        RequestOutput GotoStart(State state, int player, DistanceMap distanceMap);
     }
 }

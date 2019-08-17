@@ -24,6 +24,7 @@ namespace Game.Sim.Undo
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Return(StateUndo undo)
         {
+            undo.prevUndo = null;
             stack.Push(undo);
         }
     }

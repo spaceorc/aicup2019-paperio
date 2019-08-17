@@ -6,9 +6,9 @@ namespace Game.Strategies.RandomWalk.StartPathStrategies
 {
     public class NearestOpponentStartPathStrategy : IStartPathStrategy
     {
-        public RequestOutput GotoStart(State state, int player, DistanceMapGenerator distanceMap)
+        public RequestOutput GotoStart(State state, int player, DistanceMap distanceMap)
         {
-            var target = distanceMap.nearestOpponent[player];
+            var target = distanceMap.nearestOpponentOwned[player];
             if (target == ushort.MaxValue)
             {
                 target = distanceMap.nearestEmpty[player];

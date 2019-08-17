@@ -16,7 +16,7 @@ namespace Game.Strategies.BruteForce
         
         public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)
         {
-            minimax.Alphabeta(timeManager, state, player);
+            minimax.Alphabeta(timeManager, state, player, null, null, null);
             return new RequestOutput
             {
                 Command = minimax.bestAction, 

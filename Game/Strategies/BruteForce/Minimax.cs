@@ -2,6 +2,7 @@ using Game.Helpers;
 using Game.Protocol;
 using Game.Sim;
 using Game.Sim.Undo;
+using Game.Strategies.RandomWalk;
 
 namespace Game.Strategies.BruteForce
 {
@@ -14,32 +15,78 @@ namespace Game.Strategies.BruteForce
         public double bestScore;
         public int bestDepth;
         public Direction bestAction;
-        public Direction[] commands;
+        public double[] bestResultScores;
 
+        private double[] resultScores;
+        private Direction[] commands;
+        private bool[] skipPlayers;
+        
         public Minimax(IMinimaxEstimator estimator, int maxDepth)
         {
             this.estimator = estimator;
             this.maxDepth = maxDepth;
             commands = new Direction[6 * maxDepth * 6];
+            resultScores = new double[4];
+            bestResultScores = new double[4];
         }
 
-        public void Alphabeta(ITimeManager timeManager, State state, int player, Direction? fixedAction = null)
+        public void Alphabeta(ITimeManager timeManager, State state, int player, Path[] skipPaths, DistanceMap distanceMap, InterestingFacts facts)
         {
+            if (skipPaths != null && (skipPlayers == null || skipPlayers.Length < state.players.Length))
+                skipPlayers = new bool[state.players.Length];
+
             bestScore = double.MinValue;
             bestDepth = 0;
             estimations = 0;
             bestAction = default(Direction);
 
+            for (int i = 0; i < 4; i++)
+                bestResultScores[i] = double.NegativeInfinity;
+
             var depth = 1;
             while (!timeManager.IsExpired && depth <= maxDepth)
             {
-                Direction action;
-                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, fixedAction, out action, 0);
+                for (int i = 0; i < 4; i++)
+                    resultScores[i] = double.NegativeInfinity;
+
+                if (skipPaths != null)
+                {
+                    for (int i = 0; i < state.players.Length; i++)
+                    {
+                        skipPlayers[i] = true;
+                        if (i == player || state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
+                            continue;
+
+                        var active = distanceMap.nearestOpponentActive[i, player];
+                        if (active != ushort.MaxValue)
+                        {
+                            var dist = distanceMap.distances[i, player];
+                            if (dist != -1 && dist != int.MaxValue && dist <= 2 * depth)
+                            {
+                                skipPlayers[i] = false;
+                                break;
+                            }
+                        }
+
+                        if (facts.sawCollectDistance[i] != int.MaxValue)
+                        {
+                            if (facts.sawCollectDistance[i] <= depth)
+                            {
+                                skipPlayers[i] = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, resultScores, out var action, 0, skipPaths);
                 if (double.IsNegativeInfinity(score))
                     break;
                 bestScore = score;
                 bestAction = action;
                 bestDepth = depth;
+                for (int i = 0; i < 4; i++)
+                    bestResultScores[i] = resultScores[i];
                 depth++;
             }
         }
@@ -52,9 +99,10 @@ namespace Game.Strategies.BruteForce
             int activePlayer,
             double a,
             double b,
-            Direction? fixedAction,
+            double[] rootScores,
             out Direction resultAction,
-            int commandsStart)
+            int commandsStart,
+            Path[] skipPaths)
         {
             resultAction = default(Direction);
             if (timeManager.IsExpired)
@@ -74,16 +122,16 @@ namespace Game.Strategies.BruteForce
 
             var top = state.players[activePlayer].dir == null ? 6 : 5;
 
+            var bestRootScore = double.MinValue;
+
             for (byte d = 3; d <= top; d++)
             {
                 var action = (Direction)(((byte)(state.players[activePlayer].dir ?? Direction.Up) + d) % 4);
-                if (fixedAction != null && action != fixedAction)
-                    continue;
-                
                 var ne = state.players[activePlayer].arrivePos.NextCoord(action);
                 if (ne == ushort.MaxValue || (state.lines[ne] & (1 << activePlayer)) != 0)
                     continue;
 
+                ulong skippedMask = 0;
                 commands[commandsStart + activePlayer] = action;
                 var nextPlayer = activePlayer == player ? 0 : activePlayer + 1;
                 for (; nextPlayer < state.players.Length; nextPlayer++)
@@ -93,17 +141,42 @@ namespace Game.Strategies.BruteForce
                         || state.players[nextPlayer].status == PlayerStatus.Broken
                         || state.players[nextPlayer].arriveTime > 0)
                         continue;
+
+                    if (skipPaths != null && skipPlayers[nextPlayer])
+                    {
+                        commands[commandsStart + nextPlayer] = skipPaths[nextPlayer].ApplyNext(state, nextPlayer);
+                        skippedMask += 1ul << (nextPlayer * 8);
+                        continue;
+                    }
+
                     break;
                 }
 
                 StateUndo undo = null;
                 if (nextPlayer == state.players.Length)
                 {
-                    undo = state.NextTurn(commands, withUndo: true, commandsStart: commandsStart);
-                    if (state.players[player].status != PlayerStatus.Eliminated && state.players[player].arriveTime == 0)
-                        nextPlayer = player;
-                    else
+                    while (true)
                     {
+                        var nextUndo = state.NextTurn(commands, withUndo: true, commandsStart: commandsStart);
+                        if (undo != null)
+                            nextUndo.prevUndo = undo;
+                        
+                        undo = nextUndo;
+                        commandsStart += 6;
+
+                        if (state.players[player].status == PlayerStatus.Eliminated)
+                        {
+                            nextPlayer = state.players.Length;
+                            break;
+                        }
+
+                        if (state.players[player].arriveTime == 0)
+                        {
+                            nextPlayer = player;
+                            break;
+                        }
+
+                        var done = false;
                         for (nextPlayer = 0; nextPlayer < state.players.Length; nextPlayer++)
                         {
                             if (nextPlayer == player
@@ -111,46 +184,80 @@ namespace Game.Strategies.BruteForce
                                 || state.players[nextPlayer].status == PlayerStatus.Broken
                                 || state.players[nextPlayer].arriveTime > 0)
                                 continue;
+
+                            if (skipPaths != null && skipPlayers[nextPlayer])
+                            {
+                                commands[commandsStart + nextPlayer] = skipPaths[nextPlayer].ApplyNext(state, nextPlayer);
+                                skippedMask += 1ul << (nextPlayer * 8);
+                                continue;
+                            }
+
+                            done = true;
                             break;
                         }
+                        
+                        if (done)
+                            break;
                     }
-
-                    commandsStart += 6;
                 }
 
-                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, null, out _, commandsStart);
+                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, null, out _, commandsStart, skipPaths);
 
-                if (undo != null)
+                while (undo != null)
                 {
+                    var prevUndo = undo.prevUndo;
                     state.Undo(undo);
+                    undo = prevUndo;
                     commandsStart -= 6;
+                }
+
+                if (skippedMask != 0)
+                {
+                    for (int i = 0; i < state.players.Length; i++)
+                    {
+                        while ((skippedMask & (0xFFul << (i * 8))) != 0)
+                        {
+                            skippedMask -= 1ul << (i * 8);
+                            skipPaths[i].Revert();
+                        }
+                    }
                 }
 
                 if (double.IsNegativeInfinity(score))
                     return double.NegativeInfinity;
 
-                if (player == activePlayer)
+                if (rootScores != null)
                 {
-                    if (score > a)
-                    {
-                        a = score;
-                        resultAction = action;
-                    }
+                    rootScores[(int)action] = score;
+                    if (score > bestRootScore)
+                        bestRootScore = score;
                 }
                 else
                 {
-                    if (score < b)
+                    if (player == activePlayer)
                     {
-                        b = score;
-                        resultAction = action;
+                        if (score > a)
+                        {
+                            a = score;
+                            resultAction = action;
+                        }
                     }
-                }
+                    else
+                    {
+                        if (score < b)
+                        {
+                            b = score;
+                            resultAction = action;
+                        }
+                    }
 
-                if (a >= b)
-                    break;
+                    if (a >= b)
+                        break;
+                }
             }
 
-            return player == activePlayer ? a : b;
+            return rootScores != null ? bestRootScore
+                : player == activePlayer ? a : b;
         }
     }
 }

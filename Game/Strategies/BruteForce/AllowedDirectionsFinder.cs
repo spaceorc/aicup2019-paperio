@@ -1,37 +1,48 @@
+using System.Text;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Sim;
+using Game.Strategies.RandomWalk;
 
 namespace Game.Strategies.BruteForce
 {
     public class AllowedDirectionsFinder : IMinimaxEstimator
     {
-        private readonly Minimax minimax;
+        public readonly Minimax minimax;
 
-        public AllowedDirectionsFinder()
+        public AllowedDirectionsFinder(int maxDepth)
         {
-            minimax = new Minimax(this, 1);
+            minimax = new Minimax(this, maxDepth);
         }
 
-        public byte GetAllowedDirectionsMask(ITimeManager timeManager, State state, int player)
+        public byte GetAllowedDirectionsMask(ITimeManager timeManager, State state, int player, DistanceMap distanceMap, InterestingFacts facts)
         {
-            var top = state.players[player].dir == null ? 6 : 5;
-
-            byte result = 0;
-            for (byte d = 3; d <= top; d++)
+            var result = (byte)0;
+            minimax.Alphabeta(timeManager, state, player, facts.pathsToOwned, distanceMap, facts);
+            for (int i = 0; i < 4; i++)
             {
-                var action = (Direction)(((byte)(state.players[player].dir ?? Direction.Up) + d) % 4);
-                minimax.Alphabeta(timeManager, state, player, action);
-                if (minimax.bestScore > 0)
-                    result = (byte)(result | (1 << (int)(action)));
+                if (minimax.bestResultScores[i] > 0)
+                    result = (byte)(result | (1 << i));
             }
-
             return result;
         }
 
         public double Estimate(State state, int player)
         {
-            return state.players[player].status == PlayerStatus.Eliminated ? -1 : 1;
+            return state.players[player].status == PlayerStatus.Eliminated ? double.MinValue : double.MaxValue;
         }
+        
+        public static string DescribeAllowedDirectionsMask(byte allowedDirectionsMask)
+        {
+            var result = new StringBuilder();
+            for (int i = 0; i < 4; i++)
+            {
+                if ((allowedDirectionsMask & (1 << i)) != 0)
+                    result.Append(((Direction)i).ToString()[0]);
+            }
+
+            return result.ToString();
+        }
+
     }
 }
