@@ -7,7 +7,7 @@ namespace Game.Strategies.RandomWalk
 {
     public class InterestingFacts
     {
-        public readonly Path[] pathsToOwned = Enumerable.Repeat(0, 6).Select(x => new Path()).ToArray();
+        public readonly PlayerPath[] pathsToOwned = Enumerable.Repeat(0, 6).Select(x => new PlayerPath()).ToArray();
         public readonly int[] territoryTtl = new int[Env.CELLS_COUNT];
         public readonly int[] sawCollectTime = new int[6];
         public readonly int[] sawCollectDistance = new int[6];

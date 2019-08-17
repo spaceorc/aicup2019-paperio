@@ -14,7 +14,6 @@ using Game.Strategies.RandomWalk.StartPathStrategies;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using Path = Game.Strategies.RandomWalk.Path;
 
 namespace UnitTests
 {

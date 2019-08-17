@@ -5,7 +5,7 @@ using Game.Sim;
 
 namespace Game.Strategies.RandomWalk
 {
-    public class Path
+    public class PlayerPath
     {
         public int len;
         

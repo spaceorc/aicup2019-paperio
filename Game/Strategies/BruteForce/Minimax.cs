@@ -30,7 +30,7 @@ namespace Game.Strategies.BruteForce
             bestResultScores = new double[4];
         }
 
-        public void Alphabeta(ITimeManager timeManager, State state, int player, Path[] skipPaths, DistanceMap distanceMap, InterestingFacts facts)
+        public void Alphabeta(ITimeManager timeManager, State state, int player, PlayerPath[] skipPaths, DistanceMap distanceMap, InterestingFacts facts)
         {
             if (skipPaths != null && (skipPlayers == null || skipPlayers.Length < state.players.Length))
                 skipPlayers = new bool[state.players.Length];
@@ -102,7 +102,7 @@ namespace Game.Strategies.BruteForce
             double[] rootScores,
             out Direction resultAction,
             int commandsStart,
-            Path[] skipPaths)
+            PlayerPath[] skipPaths)
         {
             resultAction = default(Direction);
             if (timeManager.IsExpired)
