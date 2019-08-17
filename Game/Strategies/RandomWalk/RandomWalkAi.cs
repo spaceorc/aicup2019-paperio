@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using Game.Helpers;
 using Game.Protocol;
 using Game.Sim;
