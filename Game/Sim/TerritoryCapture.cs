@@ -85,6 +85,19 @@ namespace Game.Sim
         {
             for (var player = 0; player < territoryCaptureCount.Length; player++)
             {
+                if (state.players[player].status == PlayerStatus.Loser)
+                {
+                    for (var i = 0; i < territoryCaptureCount[player]; i++)
+                    {
+                        var v = territoryCapture[player, i];
+                        var mask = territoryCaptureMask[v];
+                        territoryCaptureMask[v] = mask & ~(1 << player);
+                    }
+                }
+            }
+
+            for (var player = 0; player < territoryCaptureCount.Length; player++)
+            {
                 if (state.players[player].status == PlayerStatus.Eliminated)
                     continue;
 
