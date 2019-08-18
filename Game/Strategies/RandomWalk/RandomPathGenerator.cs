@@ -20,12 +20,12 @@ namespace Game.Strategies.RandomWalk
             dirChances = new int[4];
         }
 
-        public bool Generate(State state, int player, DistanceMap distanceMap, ReliablePathBuilder builder, byte allowedDirectionsMask = 0xFF)
+        public bool Generate(State state, int player, DistanceMap distanceMap, InterestingFacts facts, ReliablePathBuilder pathBuilder, byte allowedDirectionsMask = 0xFF)
         {
-            builder.Start(state, player, distanceMap);
+            pathBuilder.Start(state, player, distanceMap);
             while (true)
             {
-                if (builder.dir == null)
+                if (pathBuilder.dir == null)
                 {
                     dirs[0] = Direction.Up;
                     dirs[1] = Direction.Left;
@@ -40,7 +40,7 @@ namespace Game.Strategies.RandomWalk
                 }
                 else
                 {
-                    dirs[0] = builder.dir.Value;
+                    dirs[0] = pathBuilder.dir.Value;
                     dirs[1] = (Direction)(((int)dirs[0] + 1) % 4);
                     dirs[2] = (Direction)(((int)dirs[0] + 3) % 4);
                     dirsCount = 3;
@@ -65,14 +65,14 @@ namespace Game.Strategies.RandomWalk
                 for (var i = 0; i < dirsCount; i++)
                 {
                     var nextDir = dirs[i];
-                    if (builder.len == 0 && (allowedDirectionsMask & (1 << (int)nextDir)) == 0)
+                    if (pathBuilder.len == 0 && (allowedDirectionsMask & (1 << (int)nextDir)) == 0)
                         continue;
                     
-                    var nextPos = builder.pos.NextCoord(nextDir);
+                    var nextPos = pathBuilder.pos.NextCoord(nextDir);
                     if (nextPos == ushort.MaxValue)
                         continue;
 
-                    if (!builder.TryAdd(state, player, distanceMap, nextPos))
+                    if (!pathBuilder.TryAdd(state, player, distanceMap, facts, nextPos))
                         continue;
 
                     found = true;
@@ -82,7 +82,9 @@ namespace Game.Strategies.RandomWalk
                 if (!found)
                     return false;
 
-                if (builder.started && state.territory[builder.pos] == player)
+                if (pathBuilder.started 
+                    && state.territory[pathBuilder.pos] == player 
+                    && (!pathBuilder.useTerritoryTtl || facts.territoryTtl[pathBuilder.pos] > pathBuilder.time))
                     return true;
             }
         }

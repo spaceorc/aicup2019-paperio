@@ -6,6 +6,8 @@ namespace Game.Strategies.RandomWalk
 {
     public class ReliablePathBuilder
     {
+        public readonly bool useTerritoryTtl;
+
         public ushort[] coords;
         public int[] times;
         public int[] used;
@@ -15,15 +17,16 @@ namespace Game.Strategies.RandomWalk
         public Direction? dir;
         public ushort pos;
         public bool started;
-
+        public int time;
+        
         private int timeLimit;
-        private int time;
         private int shiftTime;
         private int nitroLeft;
         private int slowLeft;
 
-        public ReliablePathBuilder()
+        public ReliablePathBuilder(bool useTerritoryTtl)
         {
+            this.useTerritoryTtl = useTerritoryTtl;
             coords = new ushort[Env.CELLS_COUNT];
             times = new int[Env.CELLS_COUNT];
             used = new int[Env.CELLS_COUNT];
@@ -43,13 +46,13 @@ namespace Game.Strategies.RandomWalk
             slowLeft = state.players[player].slowLeft;
         }
 
-        public bool TryAdd(State state, int player, DistanceMap distanceMap, ushort nextPos)
+        public bool TryAdd(State state, int player, DistanceMap distanceMap, InterestingFacts facts, ushort nextPos)
         {
             if (used[nextPos] == gen)
                 return false;
 
             var nextTime = time + shiftTime;
-            if (nextTime > timeLimit || nextTime == timeLimit && (!started || state.territory[nextPos] != player))
+            if (nextTime > timeLimit || nextTime == timeLimit && (!started || state.territory[nextPos] != player || useTerritoryTtl && facts.territoryTtl[nextPos] <= nextTime))
                 return false;
 
             var nextNitroLeft = nitroLeft;
@@ -73,7 +76,8 @@ namespace Game.Strategies.RandomWalk
             var escapeTime = nextTime + nextShiftTime;
 
             var nextTimeLimit = timeLimit;
-            var nextStarted = started || state.territory[nextPos] != player;
+            var nextStarted = started || state.territory[nextPos] != player
+                                      || useTerritoryTtl && facts.territoryTtl[nextPos] <= nextTime;
             if (nextStarted)
             {
                 for (var other = 0; other < state.players.Length; other++)
@@ -168,7 +172,8 @@ namespace Game.Strategies.RandomWalk
                 }
             }
 
-            if (nextTime > nextTimeLimit || nextTime == nextTimeLimit && (!started || state.territory[nextPos] != player))
+            if (nextTime > nextTimeLimit
+                || nextTime == nextTimeLimit && (!started || state.territory[nextPos] != player || useTerritoryTtl && facts.territoryTtl[nextPos] <= nextTime))
                 return false;
 
             coords[len] = nextPos;

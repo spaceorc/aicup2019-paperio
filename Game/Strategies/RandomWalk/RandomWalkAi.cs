@@ -15,7 +15,7 @@ namespace Game.Strategies.RandomWalk
         private readonly IPathEstimator estimator;
         private readonly bool useAllowedDirections;
         private readonly RandomPathGenerator randomPath;
-        private readonly ReliablePathBuilder reliablePathBuilder = new ReliablePathBuilder();
+        private readonly ReliablePathBuilder reliablePathBuilder;
         private readonly DistanceMap distanceMap = new DistanceMap();
         private readonly InterestingFacts facts = new InterestingFacts();
         private readonly StateBackup backup = new StateBackup();
@@ -23,16 +23,21 @@ namespace Game.Strategies.RandomWalk
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), true)
+            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), true, true)
         {
         }
 
-        public RandomWalkAi(IStartPathStrategy startPathStrategy, IPathEstimator estimator, bool useAllowedDirections)
+        public RandomWalkAi(
+            IStartPathStrategy startPathStrategy,
+            IPathEstimator estimator,
+            bool useAllowedDirections,
+            bool useTerritoryTtl)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
             this.useAllowedDirections = useAllowedDirections;
             randomPath = new RandomPathGenerator();
+            reliablePathBuilder = new ReliablePathBuilder(useTerritoryTtl);
         }
 
         public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)
@@ -50,7 +55,7 @@ namespace Game.Strategies.RandomWalk
 
             backup.Backup(state);
             estimator.Before(state, player);
-            
+
             var allowedDirectionsMask = useAllowedDirections
                 ? allowedDirectionsFinder.GetAllowedDirectionsMask(timeManager.GetNested(70), state, player, distanceMap, facts)
                 : (byte)0xFF;
@@ -60,10 +65,10 @@ namespace Game.Strategies.RandomWalk
                 for (int d = 0; d < 4; d++)
                 {
                     if ((allowedDirectionsMask & (1 << d)) != 0)
-                        return new RequestOutput {Command = (Direction)d, Debug = $"Only one allowed direction. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"}; 
+                        return new RequestOutput {Command = (Direction)d, Debug = $"Only one allowed direction. AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
                 }
             }
-            
+
             var pathCounter = 0;
             var validPathCounter = 0;
             Direction? bestDir = null;
@@ -74,11 +79,10 @@ namespace Game.Strategies.RandomWalk
             long bestPathCounter = 0;
             var opponentCapturedFound = false;
 
-
             while (allowedDirectionsMask != 0 && !timeManager.IsExpired)
             {
                 ++pathCounter;
-                if (randomPath.Generate(state, player, distanceMap, reliablePathBuilder, allowedDirectionsMask))
+                if (randomPath.Generate(state, player, distanceMap, facts, reliablePathBuilder, allowedDirectionsMask))
                 {
                     ++validPathCounter;
                     var dir = default(Direction);
@@ -101,7 +105,7 @@ namespace Game.Strategies.RandomWalk
                                 continue;
                             if (state.players[i].arriveTime != 0)
                                 continue;
-                            
+
                             commands[i] = facts.pathsToOwned[i].ApplyNext(state, i);
                         }
 

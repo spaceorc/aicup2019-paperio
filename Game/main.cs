@@ -37,7 +37,11 @@ namespace Game
                     timeManager = new TimeManager(readResult.Config);
                     var ai = new RandomWalkAi();
                     if (args.ElementAtOrDefault(0) == "prev")
-                        ai = new RandomWalkAi(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), useAllowedDirections:false);
+                        ai = new RandomWalkAi(
+                            new NearestOpponentStartPathStrategy(),
+                            new CaptureOpponentEstimator(),
+                            useAllowedDirections: true,
+                            useTerritoryTtl: false);
                     strategy = new Strategy(ai);
                     continue;
                 }

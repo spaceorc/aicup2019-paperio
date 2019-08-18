@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using Game.Protocol;
 using Game.Sim;
@@ -15,6 +16,72 @@ namespace Game.Strategies.RandomWalk
         private readonly StateBackup backup = new StateBackup();
         private readonly Direction[] commands = new Direction[6];
         private readonly int[] distCount = new int[6];
+        
+        public string PrintTerritoryTtl(State state)
+        {
+            var players = state.players;
+            var bonuses = state.bonuses;
+            var bonusCount = state.bonusCount;
+            var lines = state.lines;
+            var territory = state.territory;
+            const string tc = "ABCDEF";
+            using (var writer = new StringWriter())
+            {
+                for (var y = Env.Y_CELLS_COUNT - 1; y >= 0; y--)
+                {
+                    for (var x = 0; x < Env.X_CELLS_COUNT; x++)
+                    {
+                        var c = (ushort)(y * Env.X_CELLS_COUNT + x);
+
+                        var dist = territoryTtl[c];
+
+                        var player = -1;
+                        for (var p = 0; p < players.Length; p++)
+                        {
+                            if (players[p].status != PlayerStatus.Eliminated && (players[p].pos == c || players[p].arrivePos == c))
+                            {
+                                player = p;
+                                break;
+                            }
+                        }
+
+                        Bonus bonus = null;
+                        for (var b = 0; b < bonusCount; b++)
+                        {
+                            if (bonuses[b].pos == c)
+                            {
+                                bonus = bonuses[b];
+                                break;
+                            }
+                        }
+
+                        if (bonus?.type == BonusType.N)
+                            writer.Write('N');
+                        else if (bonus?.type == BonusType.S)
+                            writer.Write('S');
+                        else if (bonus?.type == BonusType.Saw)
+                            writer.Write('W');
+                        else if (player != -1)
+                            writer.Write(player);
+                        else if (lines[c] != 0)
+                            writer.Write('x');
+                        else if (territory[c] == 0xFF)
+                            writer.Write('.');
+                        else
+                            writer.Write(tc[territory[c]]);
+
+                        if (dist == int.MaxValue)
+                            writer.Write("     ");
+                        else
+                            writer.Write($"_{dist.ToString("").PadRight(3)} ");
+                    }
+
+                    writer.WriteLine();
+                }
+
+                return writer.ToString();
+            }
+        }
 
         public void Build(State state, DistanceMap distanceMap)
         {
