@@ -13,6 +13,7 @@ namespace Game.Strategies.RandomWalk
         public readonly int[] sawCollectTime = new int[6];
         public readonly int[] sawCollectDistance = new int[6];
         public readonly int[] places = new int[6];
+        public readonly int[] potentialScores = new int[6];
         
         private readonly StateBackup backup = new StateBackup();
         private readonly Direction[] commands = new Direction[6];
@@ -21,7 +22,10 @@ namespace Game.Strategies.RandomWalk
         public void Build(State state, DistanceMap distanceMap)
         {
             for (int i = 0; i < state.players.Length; i++)
+            {
                 places[i] = i;
+                potentialScores[i] = 0;
+            }
 
             for (int i = 0; i < state.players.Length - 1; i++)
             {
@@ -69,25 +73,37 @@ namespace Game.Strategies.RandomWalk
 
             var territoryVersion = state.territoryVersion;
             backup.Backup(state);
-            while (true)
+            while (!state.isGameOver)
             {
-                var ended = true;
+                var ended = 0;
                 for (var i = 0; i < state.players.Length; i++)
                 {
                     if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
+                    {
+                        ended++;
                         continue;
-                    if (state.players[i].arriveTime != 0)
-                        continue;
+                    }
 
-                    if (pathsToOwned[i].len > 0)
-                        ended = false;
+                    if (state.players[i].arriveTime != 0)
+                    {
+                        if (pathsToOwned[i].len < 0)
+                            ended++;
+                        continue;
+                    }
+
+                    if (pathsToOwned[i].len <= 0)
+                        ended++;
 
                     commands[i] = pathsToOwned[i].ApplyNext(state, i);
                     distCount[i]++;
                 }
-                
-                if (ended)
+
+                if (ended == state.players.Length)
+                {
+                    for (int i = 0; i < state.players.Length; i++)
+                        potentialScores[i] = state.players[i].score - backup.players[i].score;
                     break;
+                }
                 
                 state.NextTurn(commands, false);
                 if (state.territoryVersion != territoryVersion)

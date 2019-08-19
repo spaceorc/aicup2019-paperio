@@ -23,7 +23,7 @@ namespace Game.Strategies.RandomWalk
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(true), true, true)
+            : this(new NearestOpponentStartPathStrategy(), new CaptureAndPreventOpponentEstimator(), true, true)
         {
         }
 
@@ -237,7 +237,7 @@ namespace Game.Strategies.RandomWalk
                             {
                                 for (var other = 0; other < state.players.Length; other++)
                                 {
-                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated || facts.places[other] > 2)
+                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                                         continue;
                                     if ((state.lines[ne] & (1 << other)) != 0)
                                     {

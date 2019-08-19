@@ -139,9 +139,7 @@ namespace Game.Sim
                 var key = i < keys.Count ? keys[i] : "unknown";
 
                 if (players[i] == null)
-                {
                     players[i] = new Player();
-                }
 
                 if (!input.players.TryGetValue(key, out var playerData))
                     players[i].status = PlayerStatus.Eliminated;

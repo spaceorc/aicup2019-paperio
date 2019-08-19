@@ -1,4 +1,3 @@
-using System.Linq;
 using Game.Protocol;
 using Game.Sim;
 
@@ -6,15 +5,9 @@ namespace Game.Strategies.RandomWalk.PathEstimators
 {
     public class CaptureOpponentEstimator : IPathEstimator
     {
-        private readonly bool awardTopKillOnly;
         private int prevCaptured;
         private int prevScore;
         private int prevTime;
-        
-        public CaptureOpponentEstimator(bool awardTopKillOnly)
-        {
-            this.awardTopKillOnly = awardTopKillOnly;
-        }
         
         public void Before(State state, int player)
         {
@@ -35,8 +28,7 @@ namespace Game.Strategies.RandomWalk.PathEstimators
                 {
                     if (i != player 
                         && state.players[i].status == PlayerStatus.Eliminated 
-                        && (state.players[i].killedBy & (1 << player)) != 0
-                        && (!awardTopKillOnly || facts.places[i] <= 2))
+                        && (state.players[i].killedBy & (1 << player)) != 0)
                         baseScore += 10_000_000;
                 }
             }
