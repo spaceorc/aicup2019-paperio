@@ -69,6 +69,20 @@ namespace Game.Strategies.RandomWalk
                 }
             }
 
+            var bestKillScore = 0.0;
+            Direction? bestKillCommand = null;
+            for (int d = 0; d < 4; d++)
+            {
+                if ((allowedDirectionsMask & (1 << d)) != 0 && allowedDirectionsFinder.minimax.bestResultScores[d] > bestKillScore)
+                {
+                    bestKillScore = allowedDirectionsFinder.minimax.bestResultScores[d];
+                    bestKillCommand = (Direction)d;
+                }
+            }
+
+            if (bestKillScore > AllowedDirectionsFinder.killScore)
+                return new RequestOutput {Command = bestKillCommand, Debug = $"Gotcha! AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+
             var pathCounter = 0;
             var validPathCounter = 0;
             Direction? bestDir = null;

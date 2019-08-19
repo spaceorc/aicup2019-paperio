@@ -79,7 +79,7 @@ namespace Game.Strategies.BruteForce
                     }
                 }
 
-                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, resultScores, out var action, 0, skipPaths);
+                var score = Alphabeta(timeManager, state, player, depth, player, double.MinValue, double.MaxValue, resultScores, out var action, 0, skipPaths, facts);
                 if (double.IsNegativeInfinity(score))
                     break;
                 bestScore = score;
@@ -102,7 +102,8 @@ namespace Game.Strategies.BruteForce
             double[] rootScores,
             out Direction resultAction,
             int commandsStart,
-            PlayerPath[] skipPaths)
+            PlayerPath[] skipPaths,
+            InterestingFacts facts)
         {
             resultAction = default(Direction);
             if (timeManager.IsExpired)
@@ -113,7 +114,7 @@ namespace Game.Strategies.BruteForce
                 || depth == 0 && activePlayer == player)
             {
                 estimations++;
-                var score = estimator.Estimate(state, player);
+                var score = estimator.Estimate(state, player, facts);
                 return score;
             }
 
@@ -201,7 +202,7 @@ namespace Game.Strategies.BruteForce
                     }
                 }
 
-                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, null, out _, commandsStart, skipPaths);
+                var score = Alphabeta(timeManager, state, player, depth, nextPlayer, a, b, null, out _, commandsStart, skipPaths, facts);
 
                 while (undo != null)
                 {

@@ -9,6 +9,7 @@ namespace Game.Strategies.BruteForce
     public class AllowedDirectionsFinder : IMinimaxEstimator
     {
         public readonly Minimax minimax;
+        public const int killScore = 1000;
 
         public AllowedDirectionsFinder(int maxDepth)
         {
@@ -24,14 +25,30 @@ namespace Game.Strategies.BruteForce
                 if (minimax.bestResultScores[i] > 0)
                     result = (byte)(result | (1 << i));
             }
+
             return result;
         }
 
-        public double Estimate(State state, int player)
+        public double Estimate(State state, int player, InterestingFacts facts)
         {
-            return state.players[player].status == PlayerStatus.Eliminated ? double.MinValue : double.MaxValue;
+            if (state.players[player].status == PlayerStatus.Eliminated)
+                return double.MinValue;
+            
+            if (state.isGameOver && facts.places[player] == 0)
+                return double.MaxValue;
+
+            var score = 1;
+            for (var i = 0; i < state.players.Length; i++)
+            {
+                if (i != player
+                    && state.players[i].status == PlayerStatus.Eliminated
+                    && (state.players[i].killedBy & (1 << player)) != 0)
+                    score += killScore;
+            }
+
+            return score;
         }
-        
+
         public static string DescribeAllowedDirectionsMask(byte allowedDirectionsMask)
         {
             var result = new StringBuilder();
@@ -43,6 +60,5 @@ namespace Game.Strategies.BruteForce
 
             return result.ToString();
         }
-
     }
 }
