@@ -23,7 +23,7 @@ namespace Game.Strategies.RandomWalk
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(), true, true)
+            : this(new NearestOpponentStartPathStrategy(), new CaptureOpponentEstimator(true), true, true)
         {
         }
 

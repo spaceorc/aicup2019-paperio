@@ -1,3 +1,4 @@
+using System.Linq;
 using Game.Protocol;
 using Game.Sim;
 
@@ -5,15 +6,28 @@ namespace Game.Strategies.RandomWalk.PathEstimators
 {
     public class CaptureOpponentEstimator : IPathEstimator
     {
+        private readonly bool awardTopKillOnly;
         private int prevCaptured;
         private int prevScore;
         private int prevTime;
+        private readonly bool[] topPlayers = new bool[6];
+
+        public CaptureOpponentEstimator(bool awardTopKillOnly)
+        {
+            this.awardTopKillOnly = awardTopKillOnly;
+        }
         
         public void Before(State state, int player)
         {
             prevCaptured = state.players[player].opponentTerritoryCaptured;
             prevScore = state.players[player].score;
             prevTime = state.time;
+            if (awardTopKillOnly)
+            {
+                var tops = state.players.Select((x, i) => new {i, x.score}).OrderByDescending(x => x.score).Take(3).Select(x => x.i).ToHashSet();
+                for (var i = 0; i < state.players.Length; i++)
+                    topPlayers[i] = tops.Contains(i);
+            }
         }
 
         public double Estimate(State state, int player, int pathStartLen)
@@ -26,7 +40,10 @@ namespace Game.Strategies.RandomWalk.PathEstimators
                 baseScore = 0;
                 for (var i = 0; i < state.players.Length; i++)
                 {
-                    if (state.players[i].status == PlayerStatus.Eliminated && (state.players[i].killedBy & (1 << player)) != 0)
+                    if (i != player 
+                        && state.players[i].status == PlayerStatus.Eliminated 
+                        && (state.players[i].killedBy & (1 << player)) != 0
+                        && (!awardTopKillOnly || topPlayers[i]))
                         baseScore += 10_000_000;
                 }
             }
