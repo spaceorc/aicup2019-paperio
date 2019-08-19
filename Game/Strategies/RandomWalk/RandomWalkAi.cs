@@ -120,7 +120,7 @@ namespace Game.Strategies.RandomWalk
 
                                 if (!opponentCapturedFound || state.players[player].opponentTerritoryCaptured > 0)
                                 {
-                                    var score = estimator.Estimate(state, player, reliablePathBuilder.startLen);
+                                    var score = estimator.Estimate(state, facts, player, reliablePathBuilder.startLen);
                                     if (score > bestScore || score > bestScore - 1e-6 && reliablePathBuilder.len < bestLen)
                                     {
                                         bestScore = score;
@@ -237,7 +237,7 @@ namespace Game.Strategies.RandomWalk
                             {
                                 for (var other = 0; other < state.players.Length; other++)
                                 {
-                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated)
+                                    if (other == player || state.players[other].status == PlayerStatus.Eliminated || facts.places[other] > 2)
                                         continue;
                                     if ((state.lines[ne] & (1 << other)) != 0)
                                     {
