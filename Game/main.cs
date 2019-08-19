@@ -41,7 +41,8 @@ namespace Game
                             new NearestOpponentStartPathStrategy(),
                             new CaptureOpponentEstimator(),
                             useAllowedDirections: true,
-                            useTerritoryTtl: true);
+                            useTerritoryTtl: true,
+                            killWithMinimax: false);
                     strategy = new Strategy(ai);
                     continue;
                 }

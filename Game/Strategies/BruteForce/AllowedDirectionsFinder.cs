@@ -8,11 +8,13 @@ namespace Game.Strategies.BruteForce
 {
     public class AllowedDirectionsFinder : IMinimaxEstimator
     {
+        public readonly bool killWithMinimax;
         public readonly Minimax minimax;
         public const int killScore = 1000;
 
-        public AllowedDirectionsFinder(int maxDepth)
+        public AllowedDirectionsFinder(int maxDepth, bool killWithMinimax)
         {
+            this.killWithMinimax = killWithMinimax;
             minimax = new Minimax(this, maxDepth);
         }
 
@@ -33,6 +35,9 @@ namespace Game.Strategies.BruteForce
         {
             if (state.players[player].status == PlayerStatus.Eliminated)
                 return double.MinValue;
+
+            if (!killWithMinimax)
+                return double.MaxValue;
             
             if (state.isGameOver && facts.places[player] == 0)
                 return double.MaxValue;

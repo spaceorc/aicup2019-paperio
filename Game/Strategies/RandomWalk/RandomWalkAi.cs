@@ -19,11 +19,11 @@ namespace Game.Strategies.RandomWalk
         private readonly DistanceMap distanceMap = new DistanceMap();
         private readonly InterestingFacts facts = new InterestingFacts();
         private readonly StateBackup backup = new StateBackup();
-        private readonly AllowedDirectionsFinder allowedDirectionsFinder = new AllowedDirectionsFinder(4);
+        private readonly AllowedDirectionsFinder allowedDirectionsFinder;
         private Direction[] commands;
 
         public RandomWalkAi()
-            : this(new NearestOpponentStartPathStrategy(), new CaptureAndPreventOpponentEstimator(), true, true)
+            : this(new NearestOpponentStartPathStrategy(), new CaptureAndPreventOpponentEstimator(), true, true, true)
         {
         }
 
@@ -31,13 +31,15 @@ namespace Game.Strategies.RandomWalk
             IStartPathStrategy startPathStrategy,
             IPathEstimator estimator,
             bool useAllowedDirections,
-            bool useTerritoryTtl)
+            bool useTerritoryTtl,
+            bool killWithMinimax)
         {
             this.startPathStrategy = startPathStrategy;
             this.estimator = estimator;
             this.useAllowedDirections = useAllowedDirections;
             randomPath = new RandomPathGenerator();
             reliablePathBuilder = new ReliablePathBuilder(useTerritoryTtl);
+            allowedDirectionsFinder = new AllowedDirectionsFinder(4, killWithMinimax);
         }
 
         public RequestOutput GetCommand(State state, int player, ITimeManager timeManager, Random random)
@@ -69,19 +71,22 @@ namespace Game.Strategies.RandomWalk
                 }
             }
 
-            var bestKillScore = 0.0;
-            Direction? bestKillCommand = null;
-            for (int d = 0; d < 4; d++)
+            if (allowedDirectionsFinder.killWithMinimax)
             {
-                if ((allowedDirectionsMask & (1 << d)) != 0 && allowedDirectionsFinder.minimax.bestResultScores[d] > bestKillScore)
+                var bestKillScore = 0.0;
+                Direction? bestKillCommand = null;
+                for (int d = 0; d < 4; d++)
                 {
-                    bestKillScore = allowedDirectionsFinder.minimax.bestResultScores[d];
-                    bestKillCommand = (Direction)d;
+                    if ((allowedDirectionsMask & (1 << d)) != 0 && allowedDirectionsFinder.minimax.bestResultScores[d] > bestKillScore)
+                    {
+                        bestKillScore = allowedDirectionsFinder.minimax.bestResultScores[d];
+                        bestKillCommand = (Direction)d;
+                    }
                 }
-            }
 
-            if (bestKillScore > AllowedDirectionsFinder.killScore)
-                return new RequestOutput {Command = bestKillCommand, Debug = $"Gotcha! AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+                if (bestKillScore > AllowedDirectionsFinder.killScore)
+                    return new RequestOutput {Command = bestKillCommand, Debug = $"Gotcha with minimax! AllowedDirections: {AllowedDirectionsFinder.DescribeAllowedDirectionsMask(allowedDirectionsMask)} (depth {allowedDirectionsFinder.minimax.bestDepth})"};
+            }
 
             var pathCounter = 0;
             var validPathCounter = 0;
