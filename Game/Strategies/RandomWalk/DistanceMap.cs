@@ -281,7 +281,7 @@ namespace Game.Strategies.RandomWalk
                         var nextTime = times1[player, cur] + Player.GetShiftTime(nitroLeft, slowLeft);
                         if (nextTime < times1[player, next])
                         {
-                            enterTimes1[player, next] = times1[player, next];
+                            enterTimes1[player, next] = times1[player, cur];
                             times1[player, next] = nextTime;
                             distances1[player, next] = distances1[player, cur] + 1;
                             paths1[player, next] = cur;
@@ -495,7 +495,7 @@ namespace Game.Strategies.RandomWalk
                         var nextTime = times2[player, cur] + Player.GetShiftTime(nitroLeft, slowLeft);
                         if (nextTime < times2[player, next])
                         {
-                            enterTimes2[player, next] = times2[player, next];
+                            enterTimes2[player, next] = times2[player, cur];
                             times2[player, next] = nextTime;
                             distances2[player, next] = distances2[player, cur] + 1;
                             paths2[player, next] = cur;

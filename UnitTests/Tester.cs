@@ -51,14 +51,14 @@ namespace UnitTests
 
             var state = new State();
 
-            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (32)"));
+            var visio = JObject.Parse(File.ReadAllText("/Users/spaceorc/Downloads/visio (33)"));
 
             var visioInfo = (JArray)visio["visio_info"];
             var config = visioInfo.Single(x => x["type"]?.ToString() == "start_game").ToObject<Config>();
             ;
             config.ApplyToEnv();
 
-            var t = 1833;
+            var t = 1349;
 
             var tick = visioInfo.Single(x => x["tick_num"]?.ToString() == t.ToString());
             var prevTick = visioInfo.Single(x => x["tick_num"]?.ToString() == (t - 1).ToString());
@@ -75,7 +75,7 @@ namespace UnitTests
 
             Console.Out.WriteLine(state.Print());
 
-            // var finder = new AllowedDirectionsFinder(1);
+            // var finder = new AllowedDirectionsFinder(2, false);
             //
             // var distanceMap = new DistanceMap();
             // distanceMap.Build(state);
@@ -84,7 +84,7 @@ namespace UnitTests
             // facts.Build(state, distanceMap);
             //
             // var sw = Stopwatch.StartNew();
-            // var mask = finder.GetAllowedDirectionsMask(new TestingTimeManager(100000, 1000), state, 0, distanceMap, facts);
+            // var mask = finder.GetAllowedDirectionsMask(new TestingTimeManager(100000, 10000), state, 0, distanceMap, facts);
             // sw.Stop();
             //
             // Console.Out.WriteLine(

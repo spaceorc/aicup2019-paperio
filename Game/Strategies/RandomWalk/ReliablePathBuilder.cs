@@ -105,7 +105,7 @@ namespace Game.Strategies.RandomWalk
                         }
 
                         var finished = state.territory[nextPos] == player && (!useTerritoryTtl || facts.territoryTtl[nextPos] > nextTime);
-                        var enterLineLen = len - startLen;
+                        var enterLineLen = len - startLen + state.players[player].lineCount;
                         var lineLen = finished ? 0 : enterLineLen + 1;
                         var canKillOnEnter = distanceMap.enterLineLens1[other, nextPos] <= enterLineLen;
                         var canKillOnEscape = distanceMap.lineLens1[other, nextPos] <= lineLen;
@@ -166,7 +166,7 @@ namespace Game.Strategies.RandomWalk
                         }
 
                         var finished = state.territory[nextPos] == player && (!useTerritoryTtl || facts.territoryTtl[nextPos] > nextTime);
-                        var enterLineLen = len - startLen;
+                        var enterLineLen = len - startLen + state.players[player].lineCount;
                         var lineLen = finished ? 0 : enterLineLen + 1;
                         var canKillOnEnter = distanceMap.enterLineLens2[other, nextPos] <= enterLineLen;
                         var canKillOnEscape = distanceMap.lineLens2[other, nextPos] <= lineLen;
