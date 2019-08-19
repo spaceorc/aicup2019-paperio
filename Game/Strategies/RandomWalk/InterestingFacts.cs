@@ -61,12 +61,22 @@ namespace Game.Strategies.RandomWalk
                     {
                         if (state.players[i].status == PlayerStatus.Eliminated || state.players[i].status == PlayerStatus.Broken)
                             continue;
-                        var st = distanceMap.times[i, state.bonuses[b].pos];
-                        if (st != -1 && st != int.MaxValue)
-                        {
+                        
+                        var st = distanceMap.times1[i, state.bonuses[b].pos];
+                        if (st != -1 && st != int.MaxValue && st < sawCollectTime[i])
                             sawCollectTime[i] = st;
-                            sawCollectDistance[i] = distanceMap.distances[i, state.bonuses[b].pos];
-                        } 
+                        
+                        var sd = distanceMap.distances1[i, state.bonuses[b].pos];
+                        if (sd != -1 && sd != int.MaxValue && sd < sawCollectDistance[i])
+                            sawCollectDistance[i] = sd;
+                        
+                        st = distanceMap.times2[i, state.bonuses[b].pos];
+                        if (st != -1 && st != int.MaxValue && st < sawCollectTime[i])
+                            sawCollectTime[i] = st;
+                        
+                        sd = distanceMap.distances2[i, state.bonuses[b].pos];
+                        if (sd != -1 && sd != int.MaxValue && sd < sawCollectDistance[i])
+                            sawCollectDistance[i] = sd;
                     }
                 }
             }

@@ -262,7 +262,7 @@ namespace Game.Strategies.RandomWalk
                                     {
                                         if (distanceMap.nearestOwned[other] != ushort.MaxValue)
                                         {
-                                            var timeToOwn = distanceMap.times[other, distanceMap.nearestOwned[other]];
+                                            var timeToOwn = distanceMap.times1[other, distanceMap.nearestOwned[other]];
                                             var timeToCatch = state.players[player].shiftTime;
                                             if (timeToCatch < timeToOwn)
                                             {

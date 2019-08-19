@@ -8,7 +8,7 @@ namespace Game.Strategies.RandomWalk
     public class PlayerPath
     {
         public int len;
-        
+
         private readonly Direction[] dirs = new Direction[Env.CELLS_COUNT];
         private readonly ushort[] coords = new ushort[Env.CELLS_COUNT];
         private int originalLen;
@@ -33,13 +33,38 @@ namespace Game.Strategies.RandomWalk
             if (target == ushort.MaxValue)
                 return;
 
-            var start = state.players[player].arrivePos;
-            for (int cur = target; cur != start;)
+            if (distanceMap.times2[player, target] < distanceMap.times1[player, target])
             {
-                var next = distanceMap.paths[player, cur];
-                dirs[len++] = ((ushort)next).DirTo((ushort)cur);
-                originalLen++;
-                cur = next;
+                var start = state.players[player].arrivePos;
+                int cur = target;
+                while (true)
+                {
+                    var next = distanceMap.paths2[player, cur];
+                    if (next == -1)
+                        break;
+                    dirs[len++] = ((ushort)next).DirTo((ushort)cur);
+                    originalLen++;
+                    cur = next;
+                }
+
+                while (cur != start)
+                {
+                    var next = distanceMap.paths1[player, cur];
+                    dirs[len++] = ((ushort)next).DirTo((ushort)cur);
+                    originalLen++;
+                    cur = next;
+                }
+            }
+            else
+            {
+                var start = state.players[player].arrivePos;
+                for (int cur = target; cur != start;)
+                {
+                    var next = distanceMap.paths1[player, cur];
+                    dirs[len++] = ((ushort)next).DirTo((ushort)cur);
+                    originalLen++;
+                    cur = next;
+                }
             }
         }
 

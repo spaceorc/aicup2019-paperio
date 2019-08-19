@@ -17,7 +17,7 @@ namespace Game.Strategies.RandomWalk.StartPathStrategies
             }
 
             var next = target;
-            for (var cur = target; cur != state.players[player].arrivePos; cur = (ushort)distanceMap.paths[player, cur])
+            for (var cur = target; cur != state.players[player].arrivePos; cur = (ushort)distanceMap.paths1[player, cur])
                 next = cur;
 
             if (next != target && state.territory[next] == player)

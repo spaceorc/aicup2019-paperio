@@ -15,10 +15,11 @@ namespace Game.Strategies.RandomWalk
         public int gen;
         public int startLen;
         public Direction? dir;
+        public Direction? fixedNextDir;
         public ushort pos;
         public bool started;
         public int time;
-        
+
         private int timeLimit;
         private int shiftTime;
         private int nitroLeft;
@@ -40,6 +41,7 @@ namespace Game.Strategies.RandomWalk
             pos = state.players[player].arrivePos;
             started = state.players[player].lineCount > 0;
             dir = state.players[player].dir;
+            fixedNextDir = null;
             time = 0;
             shiftTime = state.players[player].shiftTime;
             nitroLeft = state.players[player].nitroLeft;
@@ -49,6 +51,10 @@ namespace Game.Strategies.RandomWalk
         public bool TryAdd(State state, int player, DistanceMap distanceMap, InterestingFacts facts, ushort nextPos)
         {
             if (used[nextPos] == gen)
+                return false;
+
+            var nextDir = pos.DirTo(nextPos);
+            if (fixedNextDir != null && fixedNextDir.Value != nextDir)
                 return false;
 
             var nextTime = time + shiftTime;
@@ -78,6 +84,7 @@ namespace Game.Strategies.RandomWalk
             var nextTimeLimit = timeLimit;
             var nextStarted = started || state.territory[nextPos] != player
                                       || useTerritoryTtl && facts.territoryTtl[nextPos] <= nextTime;
+            Direction? nextFixedNextDir = null;
             if (nextStarted)
             {
                 for (var other = 0; other < state.players.Length; other++)
@@ -85,7 +92,7 @@ namespace Game.Strategies.RandomWalk
                     if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                         continue;
 
-                    var otherTimeToPos = distanceMap.times[other, nextPos];
+                    var otherTimeToPos = distanceMap.times1[other, nextPos];
                     if (otherTimeToPos != -1 && otherTimeToPos != int.MaxValue)
                     {
                         if (otherTimeToPos < nextTimeLimit)
@@ -97,75 +104,112 @@ namespace Game.Strategies.RandomWalk
                             break;
                         }
 
-                        var prevOtherPos = distanceMap.paths[other, nextPos];
-                        if (prevOtherPos == -1 || prevOtherPos == int.MaxValue)
+                        var finished = state.territory[nextPos] == player && (!useTerritoryTtl || facts.territoryTtl[nextPos] > nextTime);
+                        var enterLineLen = len - startLen;
+                        var lineLen = finished ? 0 : enterLineLen + 1;
+                        var canKillOnEnter = distanceMap.enterLineLens1[other, nextPos] <= enterLineLen;
+                        var canKillOnEscape = distanceMap.lineLens1[other, nextPos] <= lineLen;
+                        var canKillInside = distanceMap.enterLineLens1[other, nextPos] <= lineLen;
+
+                        if (otherTimeToPos < escapeTime && canKillOnEscape)
                         {
                             nextTimeLimit = -1;
                             break;
                         }
 
-                        var prevShiftTime = Player.GetShiftTime(distanceMap.nitroLefts[other, prevOtherPos], distanceMap.slowLefts[other, prevOtherPos]);
-                        var otherEnterTime = otherTimeToPos - prevShiftTime;
-
-                        if (otherEnterTime < escapeTime)
+                        var otherEnterTime = distanceMap.enterTimes1[other, nextPos];
+                        if (otherEnterTime != -1 && otherEnterTime != int.MaxValue)
                         {
-                            nextTimeLimit = -1;
-                            break;
-                        }
-                    }
-
-                    var nearestOwned = distanceMap.nearestOwned[other];
-                    if (nearestOwned != ushort.MaxValue)
-                    {
-                        var timeToOwn = distanceMap.times[other, nearestOwned];
-                        if (timeToOwn != 0 && timeToOwn != -1 && timeToOwn != int.MaxValue)
-                        {
-                            var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
-                            var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
-                            var mDist = Coords.MDist(nearestOwned, nextPos);
-
-                            if (otherNitroLeft > mDist)
-                                otherNitroLeft = mDist;
-                            if (otherSlowLeft > mDist)
-                                otherSlowLeft = mDist;
-
-                            var prevShiftTime = otherNitroLeft == mDist && otherSlowLeft == mDist ? Env.TICKS_PER_REQUEST
-                                : otherNitroLeft == mDist ? Env.NITRO_TICKS_PER_REQUEST
-                                : otherSlowLeft == mDist ? Env.SLOW_TICKS_PER_REQUEST
-                                : Env.TICKS_PER_REQUEST;
-
-                            var timeToOur = timeToOwn;
-                            if (otherNitroLeft > otherSlowLeft)
-                            {
-                                mDist -= otherSlowLeft;
-                                otherNitroLeft -= otherSlowLeft;
-                                timeToOur += otherSlowLeft * Env.TICKS_PER_REQUEST;
-
-                                mDist -= otherNitroLeft;
-                                timeToOur += otherNitroLeft * Env.NITRO_TICKS_PER_REQUEST;
-
-                                timeToOur += mDist * Env.TICKS_PER_REQUEST;
-                            }
-                            else
-                            {
-                                mDist -= otherNitroLeft;
-                                otherSlowLeft -= otherNitroLeft;
-                                timeToOur += otherNitroLeft * Env.TICKS_PER_REQUEST;
-
-                                mDist -= otherSlowLeft;
-                                timeToOur += otherSlowLeft * Env.SLOW_TICKS_PER_REQUEST;
-
-                                timeToOur += mDist * Env.TICKS_PER_REQUEST;
-                            }
-
-                            if (timeToOur < nextTimeLimit)
-                                nextTimeLimit = timeToOur;
-
-                            var otherEnterTime = timeToOur - prevShiftTime;
-                            if (otherEnterTime < escapeTime)
+                            if (otherEnterTime < nextTime && canKillOnEnter)
                             {
                                 nextTimeLimit = -1;
                                 break;
+                            }
+
+                            if (otherEnterTime == nextTime && canKillInside)
+                            {
+                                nextTimeLimit = -1;
+                                break;
+                            }
+
+                            if (otherEnterTime < escapeTime && canKillInside)
+                            {
+                                var enterCommands = distanceMap.enterCommands1[other, nextPos];
+                                if ((enterCommands & (enterCommands - 1)) != 0)
+                                {
+                                    nextTimeLimit = -1;
+                                    break;
+                                }
+
+                                for (int d = 0; d < 4; d++)
+                                {
+                                    if (1 << d == enterCommands)
+                                    {
+                                        nextFixedNextDir = (Direction)d;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    otherTimeToPos = distanceMap.times2[other, nextPos];
+                    if (otherTimeToPos != -1 && otherTimeToPos != int.MaxValue)
+                    {
+                        if (otherTimeToPos < nextTimeLimit)
+                            nextTimeLimit = otherTimeToPos;
+
+                        if (state.players[other].arrivePos == nextPos)
+                        {
+                            nextTimeLimit = -1;
+                            break;
+                        }
+
+                        var finished = state.territory[nextPos] == player && (!useTerritoryTtl || facts.territoryTtl[nextPos] > nextTime);
+                        var enterLineLen = len - startLen;
+                        var lineLen = finished ? 0 : enterLineLen + 1;
+                        var canKillOnEnter = distanceMap.enterLineLens2[other, nextPos] <= enterLineLen;
+                        var canKillOnEscape = distanceMap.lineLens2[other, nextPos] <= lineLen;
+                        var canKillInside = distanceMap.enterLineLens2[other, nextPos] <= lineLen;
+
+                        if (otherTimeToPos < escapeTime && canKillOnEscape)
+                        {
+                            nextTimeLimit = -1;
+                            break;
+                        }
+
+                        var otherEnterTime = distanceMap.enterTimes2[other, nextPos];
+                        if (otherEnterTime != -1 && otherEnterTime != int.MaxValue)
+                        {
+                            if (otherEnterTime < nextTime && canKillOnEnter)
+                            {
+                                nextTimeLimit = -1;
+                                break;
+                            }
+
+                            if (otherEnterTime == nextTime && canKillInside)
+                            {
+                                nextTimeLimit = -1;
+                                break;
+                            }
+
+                            if (otherEnterTime < escapeTime && canKillInside)
+                            {
+                                var enterCommands = distanceMap.enterCommands2[other, nextPos];
+                                if ((enterCommands & (enterCommands - 1)) != 0)
+                                {
+                                    nextTimeLimit = -1;
+                                    break;
+                                }
+
+                                for (int d = 0; d < 4; d++)
+                                {
+                                    if (1 << d == enterCommands)
+                                    {
+                                        nextFixedNextDir = (Direction)d;
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
@@ -183,7 +227,8 @@ namespace Game.Strategies.RandomWalk
                 startLen = len;
 
             len++;
-            dir = pos.DirTo(nextPos);
+            fixedNextDir = nextFixedNextDir;
+            dir = nextDir;
             pos = nextPos;
             time = nextTime;
             timeLimit = nextTimeLimit;
@@ -207,52 +252,11 @@ namespace Game.Strategies.RandomWalk
                     if (other == player || state.players[other].status == PlayerStatus.Eliminated)
                         continue;
 
-                    if (distanceMap.times[other, line] != -1 && distanceMap.times[other, line] < timeLimit)
-                        timeLimit = distanceMap.times[other, line];
+                    if (distanceMap.times1[other, line] != -1 && distanceMap.times1[other, line] < timeLimit)
+                        timeLimit = distanceMap.times1[other, line];
 
-                    var nearestOwned = distanceMap.nearestOwned[other];
-                    if (nearestOwned != ushort.MaxValue)
-                    {
-                        var timeToOwn = distanceMap.times[other, nearestOwned];
-                        if (timeToOwn != 0 && timeToOwn != -1 && timeToOwn != int.MaxValue)
-                        {
-                            var otherNitroLeft = distanceMap.nitroLefts[other, nearestOwned];
-                            var otherSlowLeft = distanceMap.slowLefts[other, nearestOwned];
-                            var mDist = Coords.MDist(nearestOwned, line);
-
-                            if (otherNitroLeft > mDist)
-                                otherNitroLeft = mDist;
-                            if (otherSlowLeft > mDist)
-                                otherSlowLeft = mDist;
-
-                            var timeToOur = timeToOwn;
-                            if (otherNitroLeft > otherSlowLeft)
-                            {
-                                mDist -= otherSlowLeft;
-                                otherNitroLeft -= otherSlowLeft;
-                                timeToOur += otherSlowLeft * Env.TICKS_PER_REQUEST;
-
-                                mDist -= otherNitroLeft;
-                                timeToOur += otherNitroLeft * Env.NITRO_TICKS_PER_REQUEST;
-
-                                timeToOur += mDist * Env.TICKS_PER_REQUEST;
-                            }
-                            else
-                            {
-                                mDist -= otherNitroLeft;
-                                otherSlowLeft -= otherNitroLeft;
-                                timeToOur += otherNitroLeft * Env.TICKS_PER_REQUEST;
-
-                                mDist -= otherSlowLeft;
-                                timeToOur += otherSlowLeft * Env.SLOW_TICKS_PER_REQUEST;
-
-                                timeToOur += mDist * Env.TICKS_PER_REQUEST;
-                            }
-
-                            if (timeToOur < timeLimit)
-                                timeLimit = timeToOur;
-                        }
-                    }
+                    if (distanceMap.times2[other, line] != -1 && distanceMap.times2[other, line] < timeLimit)
+                        timeLimit = distanceMap.times2[other, line];
                 }
             }
         }
