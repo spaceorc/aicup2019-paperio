@@ -39,7 +39,7 @@ namespace Game
                     if (args.ElementAtOrDefault(0) == "prev")
                         ai = new RandomWalkAi(
                             new NearestOpponentStartPathStrategy(),
-                            new CaptureOpponentEstimator(),
+                            new CaptureOpponentEstimator(-1),
                             useAllowedDirections: true,
                             useTerritoryTtl: true,
                             killWithMinimax: false);

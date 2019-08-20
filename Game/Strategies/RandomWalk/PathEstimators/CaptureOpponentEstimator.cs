@@ -5,15 +5,23 @@ namespace Game.Strategies.RandomWalk.PathEstimators
 {
     public class CaptureOpponentEstimator : IPathEstimator
     {
+        private readonly int limitEmptyTicks;
         private int prevCaptured;
         private int prevScore;
         private int prevTime;
+        private int prevLineCount;
+
+        public CaptureOpponentEstimator(int limitEmptyTicks)
+        {
+            this.limitEmptyTicks = limitEmptyTicks;
+        }
         
         public void Before(State state, int player)
         {
             prevCaptured = state.players[player].opponentTerritoryCaptured;
             prevScore = state.players[player].score;
             prevTime = state.time;
+            prevLineCount = state.players[player].lineCount;
         }
 
         public double Estimate(State state, InterestingFacts facts, int player, int pathStartLen)
@@ -54,6 +62,13 @@ namespace Game.Strategies.RandomWalk.PathEstimators
             
             if (opponentCaptured > 0)
                 return baseScore + 100_000.0 * opponentCaptured - 100.0 * time + score;
+
+            if (state.playersLeft == 1)
+                return baseScore + score;
+            
+            var totalTicks = prevLineCount * Env.TICKS_PER_REQUEST + time;
+            if (limitEmptyTicks != -1 && totalTicks > limitEmptyTicks)
+                baseScore -= totalTicks - limitEmptyTicks;
 
             return baseScore + score;
         }
