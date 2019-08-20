@@ -44,7 +44,7 @@ namespace Game.Strategies.RandomWalk.PathEstimators
             var nitroTimeBonus = state.players[player].nitrosCollected * 30 * (Env.TICKS_PER_REQUEST - Env.NITRO_TICKS_PER_REQUEST);
             var nitroScoreBonus = nitroTimeBonus / Env.TICKS_PER_REQUEST;
             
-            var slowTimePenalty = state.players[player].slowsCollected * 30 * (Env.SLOW_TICKS_PER_REQUEST - Env.TICKS_PER_REQUEST);
+            var slowTimePenalty = state.players[player].slowsCollected * 50 * (Env.SLOW_TICKS_PER_REQUEST - Env.TICKS_PER_REQUEST);
             var slowScorePenalty = slowTimePenalty / Env.TICKS_PER_REQUEST;
             
             var opponentCaptured = state.players[player].opponentTerritoryCaptured - prevCaptured;
