@@ -645,28 +645,28 @@ bool TryAdd(V next)
 
 # Структура репозитория
 
-- `BrutalTester` - портированный симулятор. Проект планировался для того, чтобы гонять
+- [BrutalTester](https://github.com/spaceorc/aicup2019-paperio/tree/master/BrutalTester) - портированный симулятор. Проект планировался для того, чтобы гонять
 свои разные стратегии на кластере или локально друг против друга и выбирать лучшую, но 
 это я так и не реализовал (хотя обычно в контестах это удается и помогает).
-- `Pack` - упаковщик - собирает все из папки Game в один файл main.cs, пригодный
+- [Pack](https://github.com/spaceorc/aicup2019-paperio/tree/master/Pack) - упаковщик - собирает все из папки Game в один файл main.cs, пригодный
 к отправке на сервер.
-- `UnitTests` - некоторое (небольшое) множество тестов.
-- `Game` - основной код решения:
-    - `Protocol` - логика ввода/вывода.
-    - `Helpers` - всякие вспомогательные штуки.
-    - `Sim` - симулятор
-    - `Strategies` - логика игры:
-        - `BruteForce` - все что связано с минимаксом.
-        - `RandomWalk` - все что связано с рандомным поиском:
-            - `PathEstimators` - различные алгоритмы оценки
+- [UnitTests](https://github.com/spaceorc/aicup2019-paperio/tree/master/UnitTests) - некоторое (небольшое) множество тестов.
+- [Game](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game) - основной код решения:
+    - [Protocol](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Protocol) - логика ввода/вывода.
+    - [Helpers](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Helpers) - всякие вспомогательные штуки.
+    - [Sim](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Sim) - симулятор
+    - [Strategies](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies) - логика игры:
+        - [BruteForce](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/BruteForce) - все что связано с минимаксом.
+        - [RandomWalk](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk) - все что связано с рандомным поиском:
+            - [PathEstimators](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEstimators) - различные алгоритмы оценки
             качества пути.
-            - `StartPathStrategies` - различные стратегии подхода
+            - [StartPathStrategies](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/StartPathStrategies) - различные стратегии подхода
             к началу пути, если путь найти не удалось.
-            - `DistanceMap.cs` - карта времени достижения каждым ботом каждой точки, также в ней хранятся кратчайшие пути
+            - [DistanceMap.cs](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/DistanceMap.cs) - карта времени достижения каждым ботом каждой точки, также в ней хранятся кратчайшие пути
             до всех точек карты, длины шлейфов на входе и выходе из клеточек, время входа и выхода, количество бонусов.
-            - `InterestingFacts.cs` - здесь предварительный расчет всяких штук, которые в разное время требовались для 
+            - [InterestingFacts.cs](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/InterestingFacts.cs) - здесь предварительный расчет всяких штук, которые в разное время требовались для 
             разных частец алгоритма: время жизни клеточек территории, время и расстояние до пилы, сколько потенциально
             получит очков бот, если сейчас же начнет возвращаться домой.
-            - `ReliablePathBuilder.cs` - механика построения безопасного пути.
-            - `RandomPathGenerator.cs` - генератор случайного безопасного пути.
-            - `RandomWalkAi.cs` - основной алгоритм поиска решения.
+            - [ReliablePathBuilder.cs](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/ReliablePathBuilder.cs) - механика построения безопасного пути.
+            - [RandomPathGenerator.cs](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/RandomPathGenerator.cs) - генератор случайного безопасного пути.
+            - [RandomWalkAi.cs](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/RandomWalkAi.cs) - основной алгоритм поиска решения.
