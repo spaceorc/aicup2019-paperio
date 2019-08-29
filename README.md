@@ -553,7 +553,7 @@ bool TryAdd(V next)
 количество очков. Такая функция хорошо играет, когда
 врагов уже нет, и надо успеть набрать как можно больше, пока игра не закончилась.
 Кроме этого, она награждала за убитых врагов. Реализация находится в классе
-[BestScoreEstimator](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEsimators/BestScoreEstimator.cs).
+[BestScoreEstimator](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEstimators/BestScoreEstimator.cs).
 
 Вторая функция, с улучшениями, играла у меня до самого конца. В первую очередь
 предпочитаем убивать врагов. Затем предпочитаем собирать как можно больше
@@ -561,7 +561,7 @@ bool TryAdd(V next)
 по счету. Если захватили, то смотрим на затраченное время, чем меньше, тем лучше.
 В самом конце, при прочих равных, оцениваем заработанные очки. Реализация
 находится в классе 
-[CaptureOpponentEstimator](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEsimators/CaptureOpponentEstimator.cs).
+[CaptureOpponentEstimator](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEstimators/CaptureOpponentEstimator.cs).
 
 Идея третьей функции возникла у меня, как ответ на игру,
 в которой мой бот мог завершить территорию чуть раньше
@@ -574,7 +574,7 @@ bool TryAdd(V next)
 больше. Возможно, идею можно было как-то доработать, но времени на это не было,
 и я ее откатил. Тем, не менее, реализация
 находится в классе 
-[CaptureAndPreventOpponentEstimator](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEsimators/CaptureAndPreventOpponentEstimator.cs).
+[CaptureAndPreventOpponentEstimator](https://github.com/spaceorc/aicup2019-paperio/tree/master/Game/Strategies/RandomWalk/PathEstimators/CaptureAndPreventOpponentEstimator.cs).
 
 Дополнительно удалось улучшить оценочную функцию, введя в нее учет собранных
 бонусов. Понятно, что надо награждать за собранные нитро, и штрафовать за
